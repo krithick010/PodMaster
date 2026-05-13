@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Moon, Sun, AlertCircle } from "lucide-react";
+import { Moon, Sun, AlertCircle, ChevronDown } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useNamespaceContext } from "../context/NamespaceContext";
 
@@ -14,25 +14,28 @@ export function Header({ podCount, criticalCount, connectionStatus, namespaces }
     <header className="h-12 bg-surface border-subtle flex items-center justify-between px-6 gap-4">
       {/* Left: Branding */}
       <Link to="/" className="flex items-center gap-2 shrink-0">
-        <div className="font-display font-700 text-lg">
-          KubeVision <span className="text-accent-cyan">AI</span>
+        <div className="font-display font-bold text-xl tracking-tight">
+          Pod<span className="text-accent-cyan">Master</span>
         </div>
       </Link>
 
       {/* Center: Namespace Selector */}
       <div className="flex-1 flex justify-center">
-        <select
-          value={selectedNamespace}
-          onChange={(e) => setSelectedNamespace(e.target.value)}
-          className="bg-elevated border-subtle px-3 py-1 rounded text-sm font-mono cursor-pointer hover:border-accent-cyan transition-colors"
-        >
-          <option value="all">all namespaces</option>
-          {namespaces.map((ns) => (
-            <option key={ns} value={ns}>
-              {ns}
-            </option>
-          ))}
-        </select>
+        <div className="relative group flex items-center">
+          <select
+            value={selectedNamespace}
+            onChange={(e) => setSelectedNamespace(e.target.value)}
+            className="appearance-none bg-elevated border border-subtle hover:border-accent-cyan/50 text-text-primary px-4 py-1.5 pr-8 rounded-full text-xs font-mono font-600 focus:outline-none focus:ring-2 focus:ring-accent-cyan/20 transition-all cursor-pointer shadow-sm"
+          >
+            <option value="all">ALL NAMESPACES</option>
+            {namespaces.map((ns) => (
+              <option key={ns} value={ns}>
+                {ns.toUpperCase()}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 w-3.5 h-3.5 text-text-muted pointer-events-none group-hover:text-accent-cyan transition-colors" />
+        </div>
       </div>
 
       {/* Right: Status Indicators and Controls */}

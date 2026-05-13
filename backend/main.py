@@ -216,7 +216,40 @@ async def collect_and_analyze():
 
         # Add injected anomalies from chaos engine
         if chaos_engine:
-            all_findings.extend(chaos_engine.get_active_anomalies())
+            active_chaos = chaos_engine.get_active_anomalies()
+            
+            # Resolve pod prefixes to full names and inject fake metrics
+            for chaos in active_chaos:
+                ns = chaos.namespace
+                pod_prefix = chaos.pod_name  # original short name (never mutate this)
+                
+                # Find the full pod name matching the prefix
+                actual_pod = pod_prefix
+                if ns in pod_metrics:
+                    for name in pod_metrics[ns].keys():
+                        if name.startswith(pod_prefix):
+                            actual_pod = name
+                            break
+                
+                # Inject fake metric values into prometheus data
+                if ns in pod_metrics and actual_pod in pod_metrics[ns]:
+                    m = pod_metrics[ns][actual_pod]
+                    if chaos.anomaly_type == "CPU_CRITICAL":
+                        limit = m.get("cpu_limit", 1.0)
+                        if limit <= 0: limit = 1.0
+                        m["cpu_usage"] = (chaos.metrics.get("cpu_percentage", 95) / 100) * limit
+                    elif chaos.anomaly_type == "MEMORY_CRITICAL":
+                        limit = m.get("memory_limit", 1024*1024*1024)
+                        if limit <= 0: limit = 1024*1024*1024
+                        m["memory_usage"] = (chaos.metrics.get("memory_percentage", 95) / 100) * limit
+                    elif chaos.anomaly_type == "NETWORK_CRITICAL_OUT":
+                        m["network_out"] = chaos.metrics.get("network_mb_per_sec", 100) * 1024 * 1024
+                
+                # Create a COPY of the anomaly with the resolved pod name (do NOT mutate the original)
+                from copy import copy as _copy
+                resolved = _copy(chaos)
+                resolved.pod_name = actual_pod
+                all_findings.append(resolved)
 
         # Generate LLM insights
         for anomaly in all_findings:
@@ -625,6 +658,22 @@ async def simulate_log_flood(pod_name: str = Query("notification-service"), name
         "status": "injected",
         "anomaly": anomaly.to_dict(),
     }
+
+
+@app.post("/api/simulate/network-spike")
+async def simulate_network_spike(pod_name: str = Query("result-service"), namespace: str = Query("university-backend")):
+    """Simulate a network traffic spike."""
+    if not chaos_engine:
+        return {"error": "Chaos engine not available"}
+
+    chaos_engine.enable()
+    anomaly = chaos_engine.inject_network_spike(pod_name, namespace, mb_per_sec=120.0)
+
+    return {
+        "status": "injected",
+        "anomaly": anomaly.to_dict(),
+    }
+
 
 
 @app.get("/api/chaos/status")

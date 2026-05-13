@@ -6,6 +6,7 @@ import { AgentStatusStrip } from "../components/AgentStatusStrip";
 import { HealthScore } from "../components/HealthScore";
 import { QuickChaos } from "../components/QuickChaos";
 import { LiveMetrics } from "../components/LiveMetrics";
+import { ClusterGrid } from "../components/ClusterGrid";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useNamespace } from "../hooks/useNamespace";
 import { useNamespaceContext } from "../context/NamespaceContext";
@@ -102,7 +103,7 @@ export function Dashboard() {
 
             {/* Live Prometheus Metrics */}
             <div className="lg:col-span-3">
-              <LiveMetrics />
+              <LiveMetrics anomalies={filteredAnomalies} />
             </div>
 
             {/* Health Score */}
@@ -136,8 +137,8 @@ export function Dashboard() {
                       <div className="font-mono font-600">
                         {anomaly.pod_name}
                       </div>
-                      <div className="text-text-muted text-xs mt-1">
-                        {anomaly.description.substring(0, 50)}...
+                      <div className="text-text-muted text-xs mt-1 leading-relaxed">
+                        {anomaly.description}
                       </div>
                     </motion.div>
                   ))
@@ -174,14 +175,19 @@ export function Dashboard() {
                       }`}
                     >
                       <div className="font-mono font-600">{rec.action}</div>
-                      <div className="text-text-muted text-xs mt-1">
-                        {rec.explanation.substring(0, 50)}...
+                      <div className="text-text-muted text-xs mt-1 leading-relaxed">
+                        {rec.explanation}
                       </div>
                     </motion.div>
                   ))
                 )}
               </div>
             </motion.div>
+
+            {/* Live Cluster Topology / Grid */}
+            <div className="lg:col-span-3">
+              <ClusterGrid metrics={metrics} anomalies={filteredAnomalies} />
+            </div>
 
             {/* Agent Summary */}
             <motion.div
