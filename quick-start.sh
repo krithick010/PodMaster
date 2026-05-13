@@ -80,6 +80,23 @@ kubectl apply -f k8s/university-data/
 echo "⏳ Waiting for deployments..."
 kubectl wait --for=condition=available --timeout=300s deployment -l app -A || true
 
+# Start Prometheus Port Forward
+echo "📈 Forwarding Prometheus port 9090..."
+PROM_PID=""
+if lsof -tiTCP:9090 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "  Prometheus port 9090 already in use; reusing existing forward."
+else
+  # Try both common service names for Prometheus
+  if kubectl get svc -n monitoring kube-prom-kube-prometheus-prometheus >/dev/null 2>&1; then
+    kubectl port-forward -n monitoring svc/kube-prom-kube-prometheus-prometheus 9090:9090 >/dev/null 2>&1 &
+    PROM_PID=$!
+  elif kubectl get svc -n monitoring prometheus >/dev/null 2>&1; then
+    kubectl port-forward -n monitoring svc/prometheus 9090:9090 >/dev/null 2>&1 &
+    PROM_PID=$!
+  fi
+  echo "  Prometheus forwarded."
+fi
+
 # Start backend
 echo "🔵 Starting backend (FastAPI)..."
 cd backend
@@ -134,7 +151,7 @@ echo "Pods are in namespaces: university-frontend, university-backend, universit
 echo ""
 
 # Wait for Ctrl+C
-trap '[[ -n "$BACKEND_PID" ]] && kill "$BACKEND_PID" 2>/dev/null; [[ -n "$FRONTEND_PID" ]] && kill "$FRONTEND_PID" 2>/dev/null; exit' INT TERM
+trap '[[ -n "$BACKEND_PID" ]] && kill "$BACKEND_PID" 2>/dev/null; [[ -n "$FRONTEND_PID" ]] && kill "$FRONTEND_PID" 2>/dev/null; [[ -n "$PROM_PID" ]] && kill "$PROM_PID" 2>/dev/null; exit' INT TERM
 if [[ -z "$BACKEND_PID" && -z "$FRONTEND_PID" ]]; then
   echo ""
   echo "Reusing existing backend/frontend processes; this terminal will stay attached until Ctrl+C."
