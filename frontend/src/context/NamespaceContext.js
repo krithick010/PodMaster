@@ -5,10 +5,10 @@ const NamespaceContext = createContext();
 export function NamespaceProvider({ children }) {
   const [selectedNamespace, setSelectedNamespace] = useState("all");
 
-  return (
-    <NamespaceContext.Provider value={{ selectedNamespace, setSelectedNamespace }}>
-      {children}
-    </NamespaceContext.Provider>
+  return React.createElement(
+    NamespaceContext.Provider,
+    { value: { selectedNamespace, setSelectedNamespace } },
+    children
   );
 }
 

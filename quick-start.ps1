@@ -15,11 +15,16 @@ foreach ($cmd in $required) {
 }
 
 # Check if Minikube is running
+if (-not $env:MINIKUBE_CPUS) { $env:MINIKUBE_CPUS = "2" }
+if (-not $env:MINIKUBE_MEMORY) { $env:MINIKUBE_MEMORY = "3072" }
+if (-not $env:MINIKUBE_DISK_SIZE) { $env:MINIKUBE_DISK_SIZE = "15GB" }
+
 Write-Host "`n📦 Checking Minikube..." -ForegroundColor Cyan
 $minikubeStatus = minikube status 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Starting Minikube..." -ForegroundColor Yellow
-    minikube start --cpus=4 --memory=4096 --disk-size=20GB
+    Write-Host "   using $env:MINIKUBE_CPUS CPUs, $env:MINIKUBE_MEMORY MB memory, $env:MINIKUBE_DISK_SIZE disk" -ForegroundColor DarkGray
+    minikube start --cpus=$env:MINIKUBE_CPUS --memory=$env:MINIKUBE_MEMORY --disk-size=$env:MINIKUBE_DISK_SIZE
 }
 
 # Set Docker environment to use Minikube's Docker daemon
@@ -64,8 +69,14 @@ Write-Host "`n🔵 Starting backend (FastAPI)..." -ForegroundColor Cyan
 Push-Location backend
 python -m pip install -q -r requirements.txt
 $env:PYTHONUNBUFFERED = 1
-$backendProcess = Start-Process python -ArgumentList "main.py" -PassThru
-Write-Host "  Backend PID: $($backendProcess.Id)" -ForegroundColor Green
+$backendProcess = $null
+$backendListening = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
+if ($backendListening) {
+    Write-Host "  Backend already listening on port 8000; reusing existing process." -ForegroundColor Yellow
+} else {
+    $backendProcess = Start-Process uvicorn -ArgumentList "main:app --host 0.0.0.0 --port 8000 --reload" -PassThru
+    Write-Host "  Backend PID: $($backendProcess.Id)" -ForegroundColor Green
+}
 Pop-Location
 
 Start-Sleep -Seconds 3
@@ -73,9 +84,18 @@ Start-Sleep -Seconds 3
 # Start frontend
 Write-Host "`n🟢 Starting frontend (React)..." -ForegroundColor Cyan
 Push-Location frontend
-npm install -q 2>&1 | Out-Null
-$frontendProcess = Start-Process npm -ArgumentList "start" -PassThru
-Write-Host "  Frontend PID: $($frontendProcess.Id)" -ForegroundColor Green
+if (-not (Test-Path "node_modules\.bin\vite.cmd")) {
+    Write-Host "  Installing frontend dependencies..." -ForegroundColor Yellow
+    npm install
+}
+$frontendProcess = $null
+$frontendListening = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+if ($frontendListening) {
+    Write-Host "  Frontend already listening on port 3000; reusing existing process." -ForegroundColor Yellow
+} else {
+    $frontendProcess = Start-Process npm -ArgumentList "run start -- --host 0.0.0.0" -PassThru
+    Write-Host "  Frontend PID: $($frontendProcess.Id)" -ForegroundColor Green
+}
 Pop-Location
 
 # Print URLs and status
@@ -93,6 +113,10 @@ Write-Host "Press Ctrl+C to stop..." -ForegroundColor Yellow
 # Wait for termination
 $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 Write-Host "`nStopping services..." -ForegroundColor Yellow
-Stop-Process -Id $backendProcess.Id -Force -ErrorAction SilentlyContinue
-Stop-Process -Id $frontendProcess.Id -Force -ErrorAction SilentlyContinue
+if ($backendProcess) {
+    Stop-Process -Id $backendProcess.Id -Force -ErrorAction SilentlyContinue
+}
+if ($frontendProcess) {
+    Stop-Process -Id $frontendProcess.Id -Force -ErrorAction SilentlyContinue
+}
 Write-Host "Done!" -ForegroundColor Green

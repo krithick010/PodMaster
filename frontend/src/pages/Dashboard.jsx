@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Header } from "./Header";
-import { AgentStatusStrip } from "./AgentStatusStrip";
-import { HealthScore } from "./HealthScore";
+import { Header } from "../components/Header";
+import { AgentStatusStrip } from "../components/AgentStatusStrip";
+import { HealthScore } from "../components/HealthScore";
+import { QuickChaos } from "../components/QuickChaos";
+import { LiveMetrics } from "../components/LiveMetrics";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useNamespace } from "../hooks/useNamespace";
 import { useNamespaceContext } from "../context/NamespaceContext";
@@ -93,6 +95,16 @@ export function Dashboard() {
           className="max-w-7xl mx-auto"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Quick Chaos Injection */}
+            <div className="lg:col-span-3">
+              <QuickChaos />
+            </div>
+
+            {/* Live Prometheus Metrics */}
+            <div className="lg:col-span-3">
+              <LiveMetrics />
+            </div>
+
             {/* Health Score */}
             <HealthScore {...healthData} />
 

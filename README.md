@@ -109,10 +109,17 @@ A full-stack Kubernetes monitoring and alerting platform that combines real-time
 - Node.js 18+
 - Python 3.11+
 
+If Minikube is missing on macOS, install it first with `brew install minikube`, then rerun `./quick-start.sh`.
+
 ### macOS/Linux
 ```bash
 chmod +x quick-start.sh
 ./quick-start.sh
+```
+
+If your Docker Desktop memory is limited, override the defaults before starting Minikube:
+```bash
+MINIKUBE_MEMORY=3072 MINIKUBE_CPUS=2 MINIKUBE_DISK_SIZE=15GB ./quick-start.sh
 ```
 
 ### Windows (PowerShell)

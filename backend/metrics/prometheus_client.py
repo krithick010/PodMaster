@@ -32,7 +32,7 @@ class PrometheusClient:
         try:
             self.client = PrometheusConnect(url=self.prometheus_url, disable_ssl=True)
             # Test connection
-            self.client.query("up")
+            self.client.custom_query("up")
         except Exception as e:
             print(f"Warning: Could not connect to Prometheus at {self.prometheus_url}: {e}")
             print("Falling back to mock data mode.")
@@ -50,7 +50,7 @@ class PrometheusClient:
 
         try:
             # Query Prometheus for unique namespaces from kube_pod_info
-            result = self.client.query('label_values(kube_pod_info, namespace)')
+            result = self.client.custom_query('label_values(kube_pod_info, namespace)')
             if isinstance(result, list):
                 return sorted(result)
             return []
@@ -86,7 +86,7 @@ class PrometheusClient:
 
             # Query all pods
             pods_query = 'kube_pod_info'
-            pods = self.client.query(pods_query)
+            pods = self.client.custom_query(pods_query)
 
             for pod_metric in pods:
                 namespace = pod_metric.get('metric', {}).get('namespace')
@@ -100,37 +100,37 @@ class PrometheusClient:
 
                 # Query CPU usage
                 cpu_query = f'rate(container_cpu_usage_seconds_total{{pod="{pod_name}", namespace="{namespace}"}}[5m])'
-                cpu_result = self.client.query(cpu_query)
+                cpu_result = self.client.custom_query(cpu_query)
                 cpu_usage = float(cpu_result[0]['value'][1]) if cpu_result else 0.0
 
                 # Query CPU limit
                 cpu_limit_query = f'kube_pod_container_resource_limits{{pod="{pod_name}", namespace="{namespace}", resource="cpu"}}'
-                cpu_limit_result = self.client.query(cpu_limit_query)
+                cpu_limit_result = self.client.custom_query(cpu_limit_query)
                 cpu_limit = float(cpu_limit_result[0]['value'][1]) if cpu_limit_result else 0.0
 
                 # Query memory usage
                 memory_query = f'container_memory_usage_bytes{{pod="{pod_name}", namespace="{namespace}"}}'
-                memory_result = self.client.query(memory_query)
+                memory_result = self.client.custom_query(memory_query)
                 memory_usage = float(memory_result[0]['value'][1]) if memory_result else 0.0
 
                 # Query memory limit
                 memory_limit_query = f'kube_pod_container_resource_limits{{pod="{pod_name}", namespace="{namespace}", resource="memory"}}'
-                memory_limit_result = self.client.query(memory_limit_query)
+                memory_limit_result = self.client.custom_query(memory_limit_query)
                 memory_limit = float(memory_limit_result[0]['value'][1]) if memory_limit_result else 0.0
 
                 # Query restart count
                 restart_query = f'kube_pod_container_status_restarts_total{{pod="{pod_name}", namespace="{namespace}"}}'
-                restart_result = self.client.query(restart_query)
+                restart_result = self.client.custom_query(restart_query)
                 restart_count = int(float(restart_result[0]['value'][1])) if restart_result else 0
 
                 # Query network in
                 network_in_query = f'rate(container_network_receive_bytes_total{{pod="{pod_name}", namespace="{namespace}"}}[5m])'
-                network_in_result = self.client.query(network_in_query)
+                network_in_result = self.client.custom_query(network_in_query)
                 network_in = float(network_in_result[0]['value'][1]) if network_in_result else 0.0
 
                 # Query network out
                 network_out_query = f'rate(container_network_transmit_bytes_total{{pod="{pod_name}", namespace="{namespace}"}}[5m])'
-                network_out_result = self.client.query(network_out_query)
+                network_out_result = self.client.custom_query(network_out_query)
                 network_out = float(network_out_result[0]['value'][1]) if network_out_result else 0.0
 
                 result[namespace][pod_name] = {
@@ -166,7 +166,7 @@ class PrometheusClient:
 
             # Query PVC capacity
             capacity_query = f'kubelet_volume_stats_capacity_bytes{{namespace=~"{namespace}"}}'
-            capacity_results = self.client.query(capacity_query)
+            capacity_results = self.client.custom_query(capacity_query)
 
             for metric in capacity_results:
                 pvc_name = metric.get('metric', {}).get('persistentvolumeclaim')
@@ -188,7 +188,7 @@ class PrometheusClient:
 
             # Query PVC usage
             usage_query = f'kubelet_volume_stats_used_bytes{{namespace=~"{namespace}"}}'
-            usage_results = self.client.query(usage_query)
+            usage_results = self.client.custom_query(usage_query)
 
             for metric in usage_results:
                 pvc_name = metric.get('metric', {}).get('persistentvolumeclaim')
@@ -231,7 +231,7 @@ class PrometheusClient:
             return []
 
         try:
-            result = self.client.query(query)
+            result = self.client.custom_query(query)
             return result if isinstance(result, list) else [result]
         except Exception as e:
             print(f"Error executing query: {e}")
