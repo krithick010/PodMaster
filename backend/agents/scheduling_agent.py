@@ -82,12 +82,17 @@ class SchedulingAgent(BaseAgent):
 
                     # Calculate how long pod has been pending
                     if isinstance(creation_timestamp, datetime):
-                        pending_duration = datetime.utcnow() - creation_timestamp
+                        # Make both datetimes timezone-aware
+                        now = datetime.utcnow().replace(tzinfo=None)
+                        if creation_timestamp.tzinfo is not None:
+                            creation_timestamp = creation_timestamp.replace(tzinfo=None)
+                        pending_duration = now - creation_timestamp
                         pending_seconds = pending_duration.total_seconds()
                     else:
                         # Try to parse string timestamp
                         try:
                             ts = datetime.fromisoformat(str(creation_timestamp).replace("Z", "+00:00"))
+                            ts = ts.replace(tzinfo=None)  # Remove timezone
                             pending_duration = datetime.utcnow() - ts
                             pending_seconds = pending_duration.total_seconds()
                         except Exception:

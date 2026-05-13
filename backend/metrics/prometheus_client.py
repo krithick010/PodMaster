@@ -46,7 +46,9 @@ class PrometheusClient:
             List of namespace names
         """
         if not self.client:
-            return self._get_mock_namespaces()
+            self._initialize()
+            if not self.client:
+                return self._get_mock_namespaces()
 
         try:
             # Query Prometheus for unique namespaces from kube_pod_info
@@ -79,7 +81,9 @@ class PrometheusClient:
             }
         """
         if not self.client:
-            return self._get_mock_pod_metrics()
+            self._initialize()
+            if not self.client:
+                return self._get_mock_pod_metrics()
 
         try:
             result: Dict[str, Dict[str, Any]] = {}
@@ -98,25 +102,25 @@ class PrometheusClient:
                 if namespace not in result:
                     result[namespace] = {}
 
-                # Query CPU usage
-                cpu_query = f'rate(container_cpu_usage_seconds_total{{pod="{pod_name}", namespace="{namespace}"}}[5m])'
+                # Query CPU usage (sum across all containers in pod)
+                cpu_query = f'sum(rate(container_cpu_usage_seconds_total{{pod="{pod_name}", namespace="{namespace}"}}[1m]))'
                 cpu_result = self.client.custom_query(cpu_query)
                 cpu_usage = float(cpu_result[0]['value'][1]) if cpu_result else 0.0
 
-                # Query CPU limit
-                cpu_limit_query = f'kube_pod_container_resource_limits{{pod="{pod_name}", namespace="{namespace}", resource="cpu"}}'
+                # Query CPU limit (sum across all containers)
+                cpu_limit_query = f'sum(kube_pod_container_resource_limits{{pod="{pod_name}", namespace="{namespace}", resource="cpu"}})'
                 cpu_limit_result = self.client.custom_query(cpu_limit_query)
-                cpu_limit = float(cpu_limit_result[0]['value'][1]) if cpu_limit_result else 0.0
+                cpu_limit = float(cpu_limit_result[0]['value'][1]) if cpu_limit_result else 0.0  # 0 means no limit
 
-                # Query memory usage
-                memory_query = f'container_memory_usage_bytes{{pod="{pod_name}", namespace="{namespace}"}}'
+                # Query memory usage (sum across all containers)
+                memory_query = f'sum(container_memory_working_set_bytes{{pod="{pod_name}", namespace="{namespace}"}})'
                 memory_result = self.client.custom_query(memory_query)
                 memory_usage = float(memory_result[0]['value'][1]) if memory_result else 0.0
 
-                # Query memory limit
-                memory_limit_query = f'kube_pod_container_resource_limits{{pod="{pod_name}", namespace="{namespace}", resource="memory"}}'
+                # Query memory limit (sum across all containers)
+                memory_limit_query = f'sum(kube_pod_container_resource_limits{{pod="{pod_name}", namespace="{namespace}", resource="memory"}})'
                 memory_limit_result = self.client.custom_query(memory_limit_query)
-                memory_limit = float(memory_limit_result[0]['value'][1]) if memory_limit_result else 0.0
+                memory_limit = float(memory_limit_result[0]['value'][1]) if memory_limit_result else 0.0  # 0 means no limit
 
                 # Query restart count
                 restart_query = f'kube_pod_container_status_restarts_total{{pod="{pod_name}", namespace="{namespace}"}}'
@@ -159,7 +163,9 @@ class PrometheusClient:
             Dict keyed by PVC name with capacity and usage metrics
         """
         if not self.client:
-            return self._get_mock_pvc_metrics()
+            self._initialize()
+            if not self.client:
+                return self._get_mock_pvc_metrics()
 
         try:
             result: Dict[str, Dict[str, Any]] = {}
@@ -228,7 +234,9 @@ class PrometheusClient:
             List of query results
         """
         if not self.client:
-            return []
+            self._initialize()
+            if not self.client:
+                return []
 
         try:
             result = self.client.custom_query(query)

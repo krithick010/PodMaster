@@ -91,6 +91,14 @@ export function LiveMetrics() {
       borderColor: avg.memory > 80 ? "border-red-500/30" : avg.memory > 50 ? "border-yellow-500/30" : "border-cyan-500/30",
     },
     {
+      label: "Network",
+      value: avg.network > 0 ? `${avg.network} MB/s` : "N/A",
+      icon: Network,
+      color: "text-purple-400",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/30",
+    },
+    {
       label: "Active Pods",
       value: avg.pods,
       icon: Activity,
@@ -134,7 +142,7 @@ export function LiveMetrics() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {metricCards.map((metric, idx) => (
           <motion.div
             key={metric.label}

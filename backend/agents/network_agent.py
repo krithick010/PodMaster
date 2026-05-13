@@ -49,8 +49,10 @@ class NetworkAgent(BaseAgent):
         # Handle empty or malformed metrics
         if not metrics or not isinstance(metrics, dict):
             return anomalies
+            
+        pod_metrics = metrics.get("pod_metrics", metrics)
 
-        for namespace, pods in metrics.items():
+        for namespace, pods in pod_metrics.items():
             if not isinstance(pods, dict):
                 continue
 

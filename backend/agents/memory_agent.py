@@ -49,8 +49,10 @@ class MemoryAgent(BaseAgent):
         # Handle empty or malformed metrics
         if not metrics or not isinstance(metrics, dict):
             return anomalies
+            
+        pod_metrics_dict = metrics.get("pod_metrics", metrics)
 
-        for namespace, pods in metrics.items():
+        for namespace, pods in pod_metrics_dict.items():
             if not isinstance(pods, dict):
                 continue
 
