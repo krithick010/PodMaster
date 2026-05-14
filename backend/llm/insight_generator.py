@@ -68,6 +68,7 @@ class InsightGenerator:
                 timeout=15.0
             )
             
+            if response.status_code == 200:
                 data = response.json()
                 if 'choices' not in data or not data['choices']:
                     print(f"OpenRouter empty choices: {data}")
@@ -128,19 +129,10 @@ class InsightGenerator:
             return "Local intelligence mode: Please check the dashboard for real-time telemetry."
 
         try:
-            # Prepare cluster context summary
             active_anomalies = context.get("anomalies", [])
             anomaly_text = "\n".join([f"- {a.get('pod_name')}: {a.get('description')}" for a in active_anomalies[:5]])
             
-            prompt = f"""
-            User Question: "{query}"
-            
-            Current Cluster State:
-            - Active Anomalies: {len(active_anomalies)}
-            {anomaly_text if active_anomalies else "- No critical anomalies detected."}
-            
-            Provide a concise, expert response (max 2 sentences). Use a technical yet helpful tone.
-            """
+            prompt = f"""User Question: "{query}"\nCurrent Cluster State:\n{anomaly_text if active_anomalies else "- No critical anomalies detected."}"""
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -169,7 +161,7 @@ class InsightGenerator:
         except Exception as e:
             print(f"Global Query Error: {e}")
             
-        return "I'm currently analyzing the cluster state. Telemetry appears stable but I'm unable to provide a deep analysis at this second."
+        return "I'm currently analyzing the cluster state. Telemetry appears stable."
 
     def _build_prompt(self, anomaly: Anomaly) -> str:
         """Build prompt for LLM."""
