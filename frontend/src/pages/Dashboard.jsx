@@ -1,222 +1,124 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import axios from "axios";
 import { Header } from "../components/Header";
-import { AgentStatusStrip } from "../components/AgentStatusStrip";
-import { HealthScore } from "../components/HealthScore";
-import { QuickChaos } from "../components/QuickChaos";
+import { Sidebar } from "../components/Sidebar";
+import { GoldenSignalsBar } from "../components/GoldenSignalsBar";
 import { LiveMetrics } from "../components/LiveMetrics";
-import { ClusterGrid } from "../components/ClusterGrid";
+import { PodNetworkGraph } from "../components/PodNetworkGraph";
+import { LLMObservability } from "../components/LLMObservability";
+import { AIInsights } from "../components/AIInsights";
+import { HealthScore } from "../components/HealthScore";
+import { PredictiveForecast } from "../components/PredictiveForecast";
+import { ServiceCorrelations } from "../components/ServiceCorrelations";
+import { AnomalyTimeline } from "../components/AnomalyTimeline";
+import { ChaosControl } from "../components/ChaosControl";
+import { LiveActivityFeed } from "../components/LiveActivityFeed";
+import { AIRecommendations } from "../components/AIRecommendations";
+
 import { useWebSocket } from "../hooks/useWebSocket";
-import { useNamespace } from "../hooks/useNamespace";
 import { useNamespaceContext } from "../context/NamespaceContext";
 
 export function Dashboard() {
-  const { metrics, anomalies, agentStatuses, connectionStatus } = useWebSocket();
-  const { namespaces } = useNamespace();
-  const { selectedNamespace } = useNamespaceContext();
-  const [recommendations, setRecommendations] = useState([]);
-  const [healthData, setHealthData] = useState({
-    score: 100,
-    grade: "A",
-    critical: 0,
-    warning: 0,
+  const { metrics, anomalies, connectionStatus } = useWebSocket();
+  const { namespaces, selectedNamespace } = useNamespaceContext();
+
+  const [selectedPod, setSelectedPod] = useState("all");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const filteredAnomalies = anomalies.filter((a) => {
+    if (selectedNamespace !== "all" && a.namespace !== selectedNamespace) return false;
+    if (selectedPod !== "all" && a.pod_name !== selectedPod) return false;
+    return true;
   });
 
-  // Fetch recommendations
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:8000/api/recommendations"
-        );
-        setRecommendations(response.data.recommendations || []);
-      } catch (err) {
-        console.error("Error fetching recommendations:", err);
-      }
-    };
-
-    const interval = setInterval(fetchRecommendations, 15000);
-    fetchRecommendations();
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Update health score based on anomalies
-  useEffect(() => {
-    const criticalCount = anomalies.filter(
-      (a) => a.severity === "critical"
-    ).length;
-    const warningCount = anomalies.filter((a) => a.severity === "warning").length;
-
-    let score = 100 - (criticalCount * 10 + warningCount * 3);
-    score = Math.max(0, Math.min(100, score));
-
-    let grade = "A";
-    if (score >= 90) grade = "A";
-    else if (score >= 80) grade = "B";
-    else if (score >= 70) grade = "C";
-    else if (score >= 60) grade = "D";
-    else grade = "F";
-
-    setHealthData({ score, grade, critical: criticalCount, warning: warningCount });
-  }, [anomalies]);
-
-  // Filter anomalies by namespace
-  const filteredAnomalies =
-    selectedNamespace === "all"
-      ? anomalies
-      : anomalies.filter((a) => a.namespace === selectedNamespace);
-
-  // Count pods
+  const criticalCount = anomalies.filter((a) => a.severity === "critical").length;
   const podCount = Object.values(metrics).reduce(
     (sum, ns) => sum + Object.keys(ns).length,
     0
   );
 
   return (
-    <div className="flex flex-col h-full w-full bg-base">
-      {/* Header */}
+    <div className="flex flex-col h-screen w-full bg-base overflow-hidden">
       <Header
         podCount={podCount}
-        criticalCount={healthData.critical}
+        criticalCount={criticalCount}
         connectionStatus={connectionStatus}
         namespaces={namespaces}
       />
 
-      {/* Agent Status Strip */}
-      <AgentStatusStrip agents={agentStatuses} />
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        <Sidebar
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+          metrics={metrics}
+          anomalies={anomalies}
+          selectedPod={selectedPod}
+          setSelectedPod={setSelectedPod}
+        />
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-base p-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ staggerChildren: 0.1 }}
-          className="max-w-7xl mx-auto"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Quick Chaos Injection */}
-            <div className="lg:col-span-3">
-              <QuickChaos />
+        {/* Main scrollable area */}
+        <main className="flex-1 overflow-y-auto bg-base">
+          <div className="p-4 md:p-5 space-y-5 pb-12 max-w-[1800px] mx-auto">
+
+            {/* ROW 1: Golden Signals KPI Strip */}
+            <GoldenSignalsBar />
+
+            {/* ROW 1b: Live Metrics Time-Series */}
+            <div className="min-h-[320px]">
+              <LiveMetrics anomalies={filteredAnomalies} selectedPod={selectedPod} />
             </div>
 
-            {/* Live Prometheus Metrics */}
-            <div className="lg:col-span-3">
-              <LiveMetrics anomalies={filteredAnomalies} />
+            {/* ROW 2: Topology Graph + Right Stack */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+              <div className="xl:col-span-8" style={{ minHeight: 520 }}>
+                <PodNetworkGraph metrics={metrics} anomalies={anomalies} />
+              </div>
+              <div
+                className="xl:col-span-4 flex flex-col gap-4 overflow-y-auto pr-1"
+                style={{ height: 520 }}
+              >
+                <div className="flex-shrink-0">
+                  <HealthScore />
+                </div>
+                <div className="flex-shrink-0">
+                  <LLMObservability />
+                </div>
+                <div className="flex-1 min-h-[200px]">
+                  <AIInsights namespace={selectedNamespace} />
+                </div>
+              </div>
             </div>
 
-            {/* Health Score */}
-            <HealthScore {...healthData} />
-
-            {/* Critical Anomalies */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="bg-elevated border-subtle rounded-lg p-6 flex flex-col"
-            >
-              <h3 className="text-xs font-mono font-600 text-text-secondary mb-3 uppercase">
-                Active Issues
-              </h3>
-              <div className="flex-1 overflow-y-auto space-y-2 max-h-64">
-                {filteredAnomalies.length === 0 ? (
-                  <div className="text-xs text-text-muted">No issues detected</div>
-                ) : (
-                  filteredAnomalies.slice(0, 10).map((anomaly, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className={`px-3 py-2 rounded text-xs border-l-2 ${
-                        anomaly.severity === "critical"
-                          ? "bg-red-900/10 border-l-accent-red"
-                          : "bg-amber-900/10 border-l-accent-amber"
-                      }`}
-                    >
-                      <div className="font-mono font-600">
-                        {anomaly.pod_name}
-                      </div>
-                      <div className="text-text-muted text-xs mt-1 leading-relaxed">
-                        {anomaly.description}
-                      </div>
-                    </motion.div>
-                  ))
-                )}
+            {/* ROW 3: Forecast + Correlations */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+              <div className="xl:col-span-7" style={{ height: 340 }}>
+                <PredictiveForecast
+                  podName={selectedPod !== "all" ? selectedPod : "result-service-0"}
+                />
               </div>
-            </motion.div>
-
-            {/* Recommendations */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="bg-elevated border-subtle rounded-lg p-6 flex flex-col"
-            >
-              <h3 className="text-xs font-mono font-600 text-text-secondary mb-3 uppercase">
-                Recommendations
-              </h3>
-              <div className="flex-1 overflow-y-auto space-y-2 max-h-64">
-                {recommendations.length === 0 ? (
-                  <div className="text-xs text-text-muted">No actions needed</div>
-                ) : (
-                  recommendations.slice(0, 10).map((rec, idx) => (
-                    <motion.div
-                      key={rec.id}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className={`px-3 py-2 rounded text-xs border-l-2 ${
-                        rec.priority === "critical"
-                          ? "bg-red-900/10 border-l-accent-red"
-                          : rec.priority === "warning"
-                            ? "bg-amber-900/10 border-l-accent-amber"
-                            : "bg-blue-900/10 border-l-accent-cyan"
-                      }`}
-                    >
-                      <div className="font-mono font-600">{rec.action}</div>
-                      <div className="text-text-muted text-xs mt-1 leading-relaxed">
-                        {rec.explanation}
-                      </div>
-                    </motion.div>
-                  ))
-                )}
+              <div className="xl:col-span-5" style={{ height: 340 }}>
+                <ServiceCorrelations />
               </div>
-            </motion.div>
-
-            {/* Live Cluster Topology / Grid */}
-            <div className="lg:col-span-3">
-              <ClusterGrid metrics={metrics} anomalies={filteredAnomalies} />
             </div>
 
-            {/* Agent Summary */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.15 }}
-              className="bg-elevated border-subtle rounded-lg p-6 lg:col-span-3"
-            >
-              <h3 className="text-xs font-mono font-600 text-text-secondary mb-4 uppercase">
-                Agent Status Summary
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {agentStatuses.map((agent) => (
-                  <div key={agent.name} className="text-center">
-                    <div className="text-xs font-mono font-600 text-text-secondary">
-                      {agent.name.split(" ")[0]}
-                    </div>
-                    <div className="text-sm font-bold text-accent-cyan mt-2">
-                      {agent.findings_count || 0}
-                    </div>
-                    <div className="text-xs text-text-muted mt-1 capitalize">
-                      {agent.status}
-                    </div>
-                  </div>
-                ))}
+            {/* ROW 4: Anomaly Timeline — fed from live WS anomalies */}
+            <AnomalyTimeline anomalies={filteredAnomalies} />
+
+            {/* ROW 5: Chaos Control + Activity Feed */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+              <div className="xl:col-span-7 min-h-[420px]">
+                <ChaosControl />
               </div>
-            </motion.div>
+              <div className="xl:col-span-5 min-h-[420px]">
+                <LiveActivityFeed />
+              </div>
+            </div>
+
+            {/* ROW 6: AI Recommendations */}
+            <AIRecommendations />
+
           </div>
-        </motion.div>
+        </main>
       </div>
     </div>
   );

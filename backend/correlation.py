@@ -4,6 +4,7 @@ Detects correlations between metrics across pods and services.
 """
 
 import numpy as np
+import warnings
 from typing import Any, Dict, List, Tuple
 
 
@@ -51,8 +52,10 @@ class MetricCorrelationAnalyzer:
 
         # Calculate correlation matrix
         try:
-            corr_matrix = np.corrcoef(metric_arrays)
-            corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                corr_matrix = np.corrcoef(metric_arrays)
+                corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
         except Exception as e:
             print(f"Error calculating correlation: {e}")
             return ({}, [])
