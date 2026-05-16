@@ -1,6 +1,7 @@
 import React from "react";
 import { Cpu, Zap, Database, FileText, Activity, Clock, ShieldCheck, AlertOctagon, Terminal } from "lucide-react";
 import { motion } from "framer-motion";
+import { useWebSocket } from "../hooks/useWebSocket";
 
 const AGENT_CONFIGS = [
   {
@@ -12,9 +13,9 @@ const AGENT_CONFIGS = [
     bg: "bg-accent-red/10",
     border: "border-accent-red/20",
     text: "text-accent-red",
-    status: "ACTIVE (BPF SECURE)",
-    target: "university-backend/result-service",
-    metrics: "Throttling: 0.0%, Load: Normal",
+    defaultStatus: "ACTIVE (BPF SECURE)",
+    defaultTarget: "university-backend/result-service",
+    defaultMetrics: "Throttling: 0.0%, Load: Normal",
   },
   {
     name: "Memory Agent",
@@ -25,9 +26,9 @@ const AGENT_CONFIGS = [
     bg: "bg-accent-amber/10",
     border: "border-accent-amber/20",
     text: "text-accent-amber",
-    status: "WARN (LEAK DETECTED)",
-    target: "university-data/postgres",
-    metrics: "Working Set: 91.5% (256MB / 512MB)",
+    defaultStatus: "ACTIVE (EWMA TRACKING)",
+    defaultTarget: "university-data/postgres",
+    defaultMetrics: "Working Set: Nominal (<80%)",
   },
   {
     name: "Network Agent",
@@ -38,9 +39,9 @@ const AGENT_CONFIGS = [
     bg: "bg-accent-cyan/10",
     border: "border-accent-cyan/20",
     text: "text-accent-cyan",
-    status: "ACTIVE (mTLS INSPECT)",
-    target: "university-frontend/student-portal",
-    metrics: "RPC Latency: 32ms (Nominal)",
+    defaultStatus: "ACTIVE (mTLS INSPECT)",
+    defaultTarget: "university-frontend/student-portal",
+    defaultMetrics: "RPC Latency: 32ms (Nominal)",
   },
   {
     name: "Storage Agent",
@@ -51,9 +52,9 @@ const AGENT_CONFIGS = [
     bg: "bg-accent-violet/10",
     border: "border-accent-violet/20",
     text: "text-accent-violet",
-    status: "ACTIVE (NFS/EBS SYNC)",
-    target: "university-backend/attendance-storage",
-    metrics: "PVC Usage: 20.0% (200MB / 1GB)",
+    defaultStatus: "ACTIVE (NFS/EBS SYNC)",
+    defaultTarget: "university-backend/attendance-storage",
+    defaultMetrics: "PVC Usage: Nominal (<80%)",
   },
   {
     name: "LogIO Agent",
@@ -64,26 +65,28 @@ const AGENT_CONFIGS = [
     bg: "bg-accent-emerald/10",
     border: "border-accent-emerald/20",
     text: "text-accent-emerald",
-    status: "ACTIVE (LOG STALL FREE)",
-    target: "All Namespaces",
-    metrics: "Error Rate: 0.12 err/s",
+    defaultStatus: "ACTIVE (LOG STALL FREE)",
+    defaultTarget: "All Namespaces",
+    defaultMetrics: "Error Rate: 0.12 err/s",
   },
   {
     name: "Scheduling Agent",
     role: "Pending Workload & Taint Verification",
-    desc: "Continuously validates pod scheduling constraints, affinity rules, and node resource exhaustion to diagnose CrashLoopBackOff and Pending pods.",
+    desc: "Continuously validates pod scheduling constraints, affinity inline affinity rules, and node resource exhaustion to diagnose CrashLoopBackOff and Pending pods.",
     icon: Clock,
     color: "accent-blue",
     bg: "bg-blue-500/10",
     border: "border-blue-500/20",
     text: "text-blue-500",
-    status: "ALERT (CRASHLOOP DETECTED)",
-    target: "university-backend/result-service-0",
-    metrics: "Restarts: 5 (BackOff 2m)",
+    defaultStatus: "ACTIVE (SCHEDULER SYNC)",
+    defaultTarget: "university-backend/result-service-0",
+    defaultMetrics: "Restarts: 0 (Stable)",
   },
 ];
 
 export function MultiAgentSubsystem() {
+  const { agentStatuses, anomalies } = useWebSocket();
+
   return (
     <div className="bg-surface border border-subtle rounded-2xl p-6 shadow-sm font-sans text-primary relative overflow-hidden">
       {/* Background Grid Pattern */}
@@ -106,14 +109,41 @@ export function MultiAgentSubsystem() {
         </div>
         <div className="flex items-center gap-2 bg-elevated px-3 py-1.5 rounded-lg border border-subtle shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-accent-emerald animate-ping" />
-          <span className="text-xs font-mono font-bold text-primary">6 DAEMONS SYNCHRONIZED</span>
+          <span className="text-xs font-mono font-bold text-primary">{agentStatuses.length || 6} DAEMONS SYNCHRONIZED</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10 font-sans">
         {AGENT_CONFIGS.map((agent, i) => {
           const Icon = agent.icon;
-          const isAlert = agent.status.startsWith("WARN") || agent.status.startsWith("ALERT");
+          const liveAgent = agentStatuses.find((a) => a.name === agent.name);
+          const agentAnomalies = anomalies.filter((a) => a.agent_name === agent.name);
+          const latestAnomaly = agentAnomalies[0];
+
+          let displayStatus = agent.defaultStatus;
+          let displayTarget = agent.defaultTarget;
+          let displayMetrics = agent.defaultMetrics;
+
+          if (liveAgent) {
+            if (liveAgent.status === "alert" || agentAnomalies.length > 0) {
+              if (latestAnomaly) {
+                displayStatus = latestAnomaly.severity === "critical" ? `ALERT (${latestAnomaly.anomaly_type})` : `WARN (${latestAnomaly.anomaly_type})`;
+                displayTarget = `${latestAnomaly.namespace}/${latestAnomaly.pod_name}`;
+                displayMetrics = latestAnomaly.description;
+              } else {
+                displayStatus = "ALERT (ANOMALY DETECTED)";
+                displayMetrics = `Findings: ${liveAgent.findings_count} active issues`;
+              }
+            } else if (liveAgent.status === "error") {
+              displayStatus = "ERROR (SENSOR FAULT)";
+              displayMetrics = liveAgent.last_error || "Agent execution failure";
+            } else {
+              displayStatus = agent.defaultStatus;
+              displayMetrics = `Findings: 0 (System Nominal)`;
+            }
+          }
+
+          const isAlert = displayStatus.startsWith("WARN") || displayStatus.startsWith("ALERT");
 
           return (
             <motion.div
@@ -149,17 +179,17 @@ export function MultiAgentSubsystem() {
               <div className="pt-3 border-t border-subtle mt-2 space-y-2 font-mono text-[11px]">
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Target Scope:</span>
-                  <span className="font-semibold text-primary truncate max-w-[180px] bg-surface px-2 py-0.5 rounded border border-subtle">{agent.target}</span>
+                  <span className="font-semibold text-primary truncate max-w-[180px] bg-surface px-2 py-0.5 rounded border border-subtle">{displayTarget}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Real-Time State:</span>
                   <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase border ${
                     isAlert ? "bg-accent-red/10 text-accent-red border-accent-red/20 animate-pulse" : "bg-accent-emerald/10 text-accent-emerald border-accent-emerald/20"
-                  }`}>{agent.status}</span>
+                  }`}>{displayStatus}</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-muted pt-1">
                   <span>Sensor Telemetry:</span>
-                  <span className="font-mono text-primary font-semibold">{agent.metrics}</span>
+                  <span className="font-mono text-primary font-semibold truncate max-w-[220px]" title={displayMetrics}>{displayMetrics}</span>
                 </div>
               </div>
             </motion.div>

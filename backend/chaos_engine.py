@@ -56,7 +56,7 @@ class ChaosEngine:
             severity=AnomalySeverity.CRITICAL,
             description=f"[INJECTED] Pod {pod_name} CPU usage spiked to {percentage}%",
             metrics={"cpu_percentage": percentage},
-            agent_name="ChaosEngine",
+            agent_name="CPU Agent",
         )
 
         self.injected_anomalies.append({
@@ -86,7 +86,7 @@ class ChaosEngine:
             severity=AnomalySeverity.CRITICAL,
             description=f"[INJECTED] Pod {pod_name} memory usage at {percentage}% (potential leak)",
             metrics={"memory_percentage": percentage},
-            agent_name="ChaosEngine",
+            agent_name="Memory Agent",
         )
 
         self.injected_anomalies.append({
@@ -117,7 +117,7 @@ class ChaosEngine:
             severity=AnomalySeverity.CRITICAL,
             description=f"[INJECTED] PVC {pvc_name} for {pod_name} is {percentage}% full",
             metrics={"pvc_name": pvc_name, "usage_percentage": percentage},
-            agent_name="ChaosEngine",
+            agent_name="Storage Agent",
         )
 
         self.injected_anomalies.append({
@@ -147,7 +147,7 @@ class ChaosEngine:
             severity=AnomalySeverity.CRITICAL,
             description=f"[INJECTED] Pod {pod_name} error rate: {error_rate:.1f} errors/sec",
             metrics={"error_rate_per_sec": error_rate},
-            agent_name="ChaosEngine",
+            agent_name="LogIO Agent",
         )
 
         self.injected_anomalies.append({
@@ -177,7 +177,7 @@ class ChaosEngine:
             severity=AnomalySeverity.CRITICAL,
             description=f"[INJECTED] Pod {pod_name} network spike: {mb_per_sec:.1f} MB/s",
             metrics={"network_mb_per_sec": mb_per_sec},
-            agent_name="ChaosEngine",
+            agent_name="Network Agent",
         )
 
         self.injected_anomalies.append({

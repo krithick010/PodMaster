@@ -431,9 +431,13 @@ async def get_top_hotspots():
 
 
 @app.post("/api/query")
-async def ai_query_post(req: QueryRequest):
+async def ai_query_post(
+    req: Optional[QueryRequest] = None,
+    question: Optional[str] = Query(None),
+    query: Optional[str] = Query(None),
+):
     """Feature 9: AI Natural-Language Query Bar."""
-    q = req.question or req.query or "What is the overall health status of the cluster?"
+    q = (req.question if req and req.question else None) or (req.query if req and req.query else None) or question or query or "What is the overall health status of the cluster?"
     start_time = datetime.utcnow()
     context = {
         "anomalies": last_metrics.get("anomalies", []) if last_metrics else [],

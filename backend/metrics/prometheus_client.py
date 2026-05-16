@@ -45,6 +45,9 @@ class PrometheusClient:
             data = resp.json()
             for result in data.get("data", {}).get("result", []):
                 if result.get("value", [])[1] == "1":
+                    if self.client is None:
+                        print("Prometheus is healthy! Dynamically initializing client...")
+                        self.client = PrometheusConnect(url=self.prometheus_url, disable_ssl=True)
                     return True
             return False
         except Exception:
@@ -200,6 +203,25 @@ class PrometheusClient:
         if not self.is_healthy() or not self.client:
             return self._mock_pod_metrics()
         try:
+            top_data = {}
+            try:
+                import asyncio
+                proc = await asyncio.create_subprocess_shell(
+                    "kubectl top pods -A --no-headers",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, _ = await proc.communicate()
+                for line in stdout.decode().splitlines():
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        ns, p, cpu_str, mem_str = parts[0], parts[1], parts[2], parts[3]
+                        cpu_val = float(cpu_str.replace("m", "")) / 1000.0 if "m" in cpu_str else float(cpu_str.replace("n", "")) / 1e9 if "n" in cpu_str else float(cpu_str)
+                        mem_val = float(mem_str.replace("Mi", "")) * 1024 * 1024 if "Mi" in mem_str else float(mem_str.replace("Gi", "")) * 1024 * 1024 * 1024 if "Gi" in mem_str else float(mem_str.replace("Ki", "")) * 1024 if "Ki" in mem_str else float(mem_str)
+                        top_data[f"{ns}/{p}"] = {"cpu": cpu_val, "mem": mem_val}
+            except Exception as e:
+                print(f"Error running kubectl top: {e}")
+
             result: Dict[str, Dict[str, Any]] = {}
             pods = self.client.custom_query('kube_pod_info')
             for pod_metric in pods:
@@ -209,17 +231,24 @@ class PrometheusClient:
                     continue
                 if namespace not in result:
                     result[namespace] = {}
-                cpu_query = f"rate(container_cpu_usage_seconds_total{{pod=\"{pod_name}\", namespace=\"{namespace}\"}}[2m])"
-                cpu_res = self.client.custom_query(cpu_query)
-                cpu_usage = float(cpu_res[0]['value'][1]) if cpu_res else 0.0
+
+                # Check top_data first for instant high-fidelity metrics
+                top_entry = top_data.get(f"{namespace}/{pod_name}")
+                if top_entry:
+                    cpu_usage = top_entry["cpu"]
+                    memory_usage = top_entry["mem"]
+                else:
+                    cpu_query = f"irate(container_cpu_usage_seconds_total{{pod=\"{pod_name}\", namespace=\"{namespace}\"}}[1m])"
+                    cpu_res = self.client.custom_query(cpu_query)
+                    cpu_usage = float(cpu_res[0]['value'][1]) if cpu_res else 0.0
+
+                    mem_query = f"sum(container_memory_working_set_bytes{{pod=\"{pod_name}\", namespace=\"{namespace}\"}})"
+                    mem_res = self.client.custom_query(mem_query)
+                    memory_usage = float(mem_res[0]['value'][1]) if mem_res else 0.0
 
                 cpu_limit_query = f"sum(kube_pod_container_resource_limits{{pod=\"{pod_name}\", namespace=\"{namespace}\", resource=\"cpu\"}})"
                 cpu_limit_res = self.client.custom_query(cpu_limit_query)
                 cpu_limit = float(cpu_limit_res[0]['value'][1]) if cpu_limit_res else 0.0
-
-                mem_query = f"sum(container_memory_working_set_bytes{{pod=\"{pod_name}\", namespace=\"{namespace}\"}})"
-                mem_res = self.client.custom_query(mem_query)
-                memory_usage = float(mem_res[0]['value'][1]) if mem_res else 0.0
 
                 mem_limit_query = f"sum(kube_pod_container_resource_limits{{pod=\"{pod_name}\", namespace=\"{namespace}\", resource=\"memory\"}})"
                 mem_limit_res = self.client.custom_query(mem_limit_query)
