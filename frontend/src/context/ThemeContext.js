@@ -4,9 +4,8 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    // Check localStorage or default to dark
     const saved = localStorage.getItem("kubevision-theme");
-    return saved || "dark";
+    return saved || "light";
   });
 
   useEffect(() => {

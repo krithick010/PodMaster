@@ -31,24 +31,24 @@
 }
 
 html.light {
-  --bg-base: #f0f4fa;
+  --bg-base: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-elevated: #e8eff8;
-  --bg-border: #cbd5e1;
+  --bg-elevated: #f1f5f9;
+  --bg-border: #e2e8f0;
 
   --accent-cyan: #0284c7;
-  --accent-violet: #6d28d9;
-  --accent-emerald: #059669;
+  --accent-violet: #6366f1;
+  --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
-  --accent-red: #dc2626;
+  --accent-red: #ef4444;
 
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
 
-  --glow-cyan: 0 0 20px rgba(2, 132, 199, 0.15);
-  --glow-red: 0 0 20px rgba(220, 38, 38, 0.2);
-  --glow-emerald: 0 0 20px rgba(5, 150, 105, 0.15);
+  --glow-cyan: 0 4px 20px rgba(2, 132, 199, 0.15);
+  --glow-red: 0 4px 20px rgba(239, 68, 68, 0.2);
+  --glow-emerald: 0 4px 20px rgba(16, 185, 129, 0.15);
 }
 
 * {

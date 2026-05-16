@@ -1,0 +1,128 @@
+================================================================================
+           PODMASTER 🔮 — PRESENTER QUICK-START & PROTOTYPE DEMO GUIDE
+================================================================================
+
+This guide provides simple, step-by-step instructions to install all required
+dependencies, initialize the database, and spin up both the backend and frontend
+servers from scratch for a flawless live presentation.
+
+Even if Minikube or Ollama AI daemons are offline during the presentation,
+PodMaster's built-in "Resilient Demo Fallback Mode" will automatically activate,
+serving realistic telemetry and AI simulations across all widgets!
+
+--------------------------------------------------------------------------------
+PREREQUISITES CHECKLIST
+--------------------------------------------------------------------------------
+1. Python 3.11 or higher installed (`python --version`)
+2. Node.js 18 or higher installed (`node -v` and `npm -v`)
+3. (Optional) Minikube / Docker running for live Kubernetes pod scraping
+
+================================================================================
+STEP 1: START THE BACKEND (FastAPI + SQLite + Multi-Agent Orchestrator)
+================================================================================
+
+Open a terminal (PowerShell or Command Prompt) and navigate to the project folder:
+
+    cd f:\projects\PodMaster\backend
+
+1. Create a Python virtual environment (if not already created):
+    python -m venv venv
+
+2. Activate the virtual environment:
+    .\venv\Scripts\activate    (On Windows PowerShell)
+    source venv/bin/activate   (On macOS / Linux)
+
+3. Install all required Python backend libraries:
+    pip install -r requirements.txt
+
+4. Start the live Uvicorn backend server:
+    uvicorn main:app --reload --port 8000
+
+NOTE: On startup, the backend automatically creates and seeds the local SQLite
+database tables (`slos`, `alert_rules`, `config_events`, `rca_incidents`) and
+initiates the background 10-second multi-agent collection loop!
+
+Backend API is now live at:       http://localhost:8000
+Swagger API Documentation at:     http://localhost:8000/docs
+
+
+================================================================================
+STEP 2: START THE FRONTEND (React 19 + Vite Dashboard UI)
+================================================================================
+
+Open a SECOND, separate terminal window and navigate to the frontend folder:
+
+    cd f:\projects\PodMaster\frontend
+
+1. Install all Node.js dependencies:
+    npm install
+
+2. Start the ultra-fast Vite development server:
+    npm run dev
+
+3. Open your web browser and navigate to:
+    http://localhost:5173
+
+(Optional) To demonstrate a fully optimized production bundle:
+    npm run build
+    npm run preview
+
+
+================================================================================
+STEP 3: LIVE PRESENTATION CHECKLIST & WOW FACTORS (What to Show Presentors)
+================================================================================
+
+When presenting PodMaster to judges or stakeholders, walk through these 5 key tabs:
+
+1. TAB 1: OVERVIEW & GOLDEN SIGNALS
+   - Point out the 4 real-time Golden Signal metric cards: Traffic (RPS),
+     Latency (ms), Error Rate (%), and CPU/Memory Saturation (%).
+   - Highlight the SLO Status Bar tracking 99.9% uptime targets with real-time
+     remaining Error Budget progress bars.
+
+2. TAB 2: SERVICE TOPOLOGY MAP & HOTSPOTS
+   - Show the dynamic Cytoscape network graph colored by real-time health.
+   - Point out the high-contrast pure white parent namespace labels
+     (UNIVERSITY-FRONTEND, UNIVERSITY-BACKEND, UNIVERSITY-DATA) over dark pills.
+   - Show the Top Hotspots panel categorizing problem pods across CPU, Memory,
+     Restarts, and Error spikes.
+
+3. TAB 3: AI SRE COPILOT & CORRELATIONS
+   - Demonstrate the "Ask PodMaster" natural language search bar at the top
+     (e.g., type "Why is result-service restarting?").
+   - Click the bottom-right persistent Floating AI Assistant icon to open the
+     interactive chat modal across any route.
+   - Point out the synchronized Logs + Metrics correlation chart showing exact
+     log snippets precisely when saturation spikes occur.
+
+4. TAB 4: ALERTS & INCIDENT TIMELINE
+   - Show the live incident timeline tracking automated multi-symptom RCA
+     records alongside deployment/autoscale configuration event markers.
+
+5. TAB 5: CHAOS SANDBOX & UNDO MECHANICS (Highly Interactive Wow Factor!)
+   - Click the Chaos Sandbox tab and select a scenario (e.g., CPU Stress or
+     Memory Leak).
+   - Show the 5-second staging countdown timer that instantly converts the card
+     into an amber "REVOKE (5s)" button with a Trash icon.
+   - Click the Trash icon button during the 5s window to demonstrate safe,
+     instant cancellation before faults reach the cluster.
+   - Alternatively, let the injection execute into an active subroutine, show its
+     active timer row in the console, and click the row's Trash icon to instantly
+     abort the test on the fly!
+
+
+================================================================================
+TROUBLESHOOTING / EMERGENCY COMMANDS
+================================================================================
+
+- If port 8000 is in use (Backend):
+    uvicorn main:app --reload --port 8001 (and update frontend API base URL)
+
+- If port 5173 is in use (Frontend):
+    npm run dev -- --port 3000
+
+- If you want to emergency-abort all active chaos injections via command line:
+    curl -X POST http://localhost:8000/api/chaos/disable
+
+--------------------------------------------------------------------------------
+PodMaster is fully active, enterprise-ready, and optimized for demonstration!

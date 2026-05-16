@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Activity, AlertTriangle, Clock, Zap } from "lucide-react";
+import { Activity, AlertTriangle, Clock, Zap, Cpu, Sparkles } from "lucide-react";
 
 export function GoldenSignalsBar() {
   const [signals, setSignals] = useState({
-    throughput: 0,
-    errorRate: 0,
-    latency: 0,
-    status: "healthy"
+    traffic_rps: 0,
+    error_rate: 0,
+    latency_ms: 0,
+    saturation: 0,
+    status: "healthy",
+    source: "prometheus"
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,85 +41,112 @@ export function GoldenSignalsBar() {
 
   if (loading) {
     return (
-      <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-4 animate-pulse h-[88px] flex items-center px-8 gap-6 shadow-xl">
-        {[1,2,3,4].map(i => (
-          <div key={i} className="flex-1 h-10 bg-[#161b22] rounded-lg" />
+      <div className="bg-surface border border-subtle rounded-xl p-4 animate-pulse h-[88px] flex items-center px-8 gap-6 shadow-sm">
+        {[1,2,3,4,5].map(i => (
+          <div key={i} className="flex-1 h-10 bg-elevated rounded-lg" />
         ))}
       </div>
     );
   }
 
-  const status = getStatusConfig(signals.status);
+  const throughput = signals.traffic_rps ?? signals.throughput ?? 0;
+  const errorRate = signals.error_rate ?? signals.errorRate ?? 0;
+  const latency = signals.latency_ms ?? signals.latency ?? 0;
+  const saturation = signals.saturation ?? 0;
+  const isDemo = signals.source === "simulated";
+  const status = getStatusConfig(signals.status || "healthy");
 
   return (
-    <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-0 shadow-2xl relative overflow-hidden min-h-[92px] flex items-stretch">
+    <div className="bg-surface border border-subtle rounded-xl shadow-sm relative overflow-hidden min-h-[92px] flex items-stretch text-primary">
       {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#30363d] to-transparent opacity-50"></div>
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent-cyan via-accent-violet to-accent-emerald opacity-80"></div>
       
-      <div className="flex-1 flex divide-x divide-[#30363d]">
+      <div className="flex-1 flex flex-wrap lg:flex-nowrap divide-x divide-subtle">
         
         {/* Throughput */}
-        <div className="flex-1 px-6 py-4 flex items-center gap-4 group hover:bg-white/[0.02] transition-colors">
-          <div className="p-2.5 bg-cyan-500/10 rounded-lg text-cyan-400 group-hover:scale-110 transition-transform">
-            <Activity size={20} />
+        <div className="flex-1 min-w-[140px] px-6 py-4 flex items-center gap-4 group hover:bg-elevated/40 transition-colors">
+          <div className="p-3 bg-accent-cyan/10 rounded-xl text-accent-cyan group-hover:scale-110 transition-transform shadow-xs">
+            <Activity size={22} />
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 font-mono font-bold uppercase tracking-[0.2em] mb-1">Throughput</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-mono font-black text-gray-100 tracking-tight">
-                {signals.throughput.toFixed(1)}
+            <p className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] mb-1 font-mono">Throughput</p>
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-2xl font-black text-primary tracking-tight">
+                {Number(throughput).toFixed(1)}
               </span>
-              <span className="text-[10px] text-gray-500 font-mono uppercase">req/s</span>
+              <span className="text-xs text-muted uppercase">rps</span>
             </div>
           </div>
         </div>
 
         {/* Error Rate */}
-        <div className="flex-1 px-6 py-4 flex items-center gap-4 group hover:bg-white/[0.02] transition-colors">
-          <div className={`p-2.5 rounded-lg group-hover:scale-110 transition-transform ${signals.errorRate > 5 ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'}`}>
-            <AlertTriangle size={20} />
+        <div className="flex-1 min-w-[140px] px-6 py-4 flex items-center gap-4 group hover:bg-elevated/40 transition-colors">
+          <div className={`p-3 rounded-xl group-hover:scale-110 transition-transform shadow-xs ${errorRate > 5 ? 'bg-accent-red/10 text-accent-red' : 'bg-accent-amber/10 text-accent-amber'}`}>
+            <AlertTriangle size={22} />
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 font-mono font-bold uppercase tracking-[0.2em] mb-1">Error Rate</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-mono font-black text-gray-100 tracking-tight">
-                {signals.errorRate.toFixed(2)}
+            <p className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] mb-1 font-mono">Error Rate</p>
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-2xl font-black text-primary tracking-tight">
+                {Number(errorRate).toFixed(2)}
               </span>
-              <span className="text-[10px] text-gray-500 font-mono uppercase">%</span>
+              <span className="text-xs text-muted uppercase">%</span>
             </div>
           </div>
         </div>
 
         {/* Latency */}
-        <div className="flex-1 px-6 py-4 flex items-center gap-4 group hover:bg-white/[0.02] transition-colors">
-          <div className="p-2.5 bg-violet-500/10 rounded-lg text-violet-400 group-hover:scale-110 transition-transform">
-            <Clock size={20} />
+        <div className="flex-1 min-w-[140px] px-6 py-4 flex items-center gap-4 group hover:bg-elevated/40 transition-colors">
+          <div className="p-3 bg-accent-violet/10 rounded-xl text-accent-violet group-hover:scale-110 transition-transform shadow-xs">
+            <Clock size={22} />
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 font-mono font-bold uppercase tracking-[0.2em] mb-1">Avg Latency</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-mono font-black text-gray-100 tracking-tight">
-                {signals.latency.toFixed(0)}
+            <p className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] mb-1 font-mono">Latency</p>
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-2xl font-black text-primary tracking-tight">
+                {Number(latency).toFixed(0)}
               </span>
-              <span className="text-[10px] text-gray-500 font-mono uppercase">ms</span>
+              <span className="text-xs text-muted uppercase">ms</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Saturation */}
+        <div className="flex-1 min-w-[140px] px-6 py-4 flex items-center gap-4 group hover:bg-elevated/40 transition-colors">
+          <div className={`p-3 rounded-xl group-hover:scale-110 transition-transform shadow-xs ${saturation > 80 ? 'bg-accent-red/10 text-accent-red' : 'bg-accent-emerald/10 text-accent-emerald'}`}>
+            <Cpu size={22} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] mb-1 font-mono">Saturation</p>
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-2xl font-black text-primary tracking-tight">
+                {Number(saturation).toFixed(1)}
+              </span>
+              <span className="text-xs text-muted uppercase">%</span>
             </div>
           </div>
         </div>
 
         {/* System Status - Right Side */}
-        <div className="flex-[0.8] px-6 flex flex-col justify-center bg-[#161b22]/30 border-l border-[#30363d] relative overflow-hidden">
-          {/* Subtle status glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 blur-[40px] opacity-20 pointer-events-none" style={{ backgroundColor: status.color }}></div>
+        <div className="flex-[0.9] px-6 py-4 flex flex-col justify-center items-center bg-elevated/30 border-l border-subtle relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 blur-[40px] opacity-15 pointer-events-none" style={{ backgroundColor: status.color }}></div>
           
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full border mb-2" style={{ borderColor: `${status.color}33`, backgroundColor: status.bg }}>
-               <div className="w-1.5 h-1.5 rounded-full pulse" style={{ backgroundColor: status.color, boxShadow: `0 0 8px ${status.color}` }}></div>
-               <span className="text-[10px] font-mono font-bold tracking-[0.15em]" style={{ color: status.color }}>{status.label}</span>
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border shadow-2xs" style={{ borderColor: `${status.color}40`, backgroundColor: status.bg }}>
+               <div className="w-2 h-2 rounded-full pulse" style={{ backgroundColor: status.color, boxShadow: `0 0 8px ${status.color}` }}></div>
+               <span className="text-xs font-mono font-bold tracking-wider" style={{ color: status.color }}>{status.label}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
-              <Zap size={10} className="text-cyan-500/50" />
-              Real-time Sync
-            </div>
+
+            {isDemo && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-violet/10 border border-accent-violet/30 rounded-full text-accent-violet text-[10px] font-mono font-bold uppercase tracking-wider shadow-2xs">
+                <Sparkles size={12} className="text-accent-violet animate-spin" style={{ animationDuration: '4s' }} />
+                DEMO MODE
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted uppercase tracking-wider mt-2">
+            <Zap size={12} className="text-accent-cyan" />
+            {isDemo ? "Simulated Telemetry Fallback" : "Live Kubelet BPF Stream"}
           </div>
         </div>
 

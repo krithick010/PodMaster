@@ -1,5 +1,5 @@
 """
-Data models for KubeVision AI.
+Data models for KubeVision AI / PodMaster.
 Used for SQLite persistence and API responses.
 """
 
@@ -27,7 +27,7 @@ class AnomalyRecord:
         """Convert to dictionary for API responses."""
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
             "namespace": self.namespace,
             "pod_name": self.pod_name,
             "agent_name": self.agent_name,
@@ -54,7 +54,7 @@ class AgentRunRecord:
         """Convert to dictionary for API responses."""
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
             "agent_name": self.agent_name,
             "status": self.status,
             "findings_count": self.findings_count,
@@ -83,7 +83,7 @@ class MetricsSnapshotRecord:
         """Convert to dictionary for API responses."""
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
             "namespace": self.namespace,
             "pod_name": self.pod_name,
             "cpu_usage": self.cpu_usage,
@@ -115,7 +115,7 @@ class StorageMetricsRecord:
         """Convert to dictionary for API responses."""
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
             "namespace": self.namespace,
             "pod_name": self.pod_name,
             "pvc_name": self.pvc_name,
@@ -124,4 +124,105 @@ class StorageMetricsRecord:
             "used_bytes": self.used_bytes,
             "available_bytes": self.available_bytes,
             "usage_percentage": self.usage_percentage,
+        }
+
+
+@dataclass
+class ClusterSummaryRecord:
+    """Model for cluster health summary synthesis."""
+    id: Optional[int] = None
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    health_score: float = 100.0
+    critical_findings: int = 0
+    llm_summary: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
+            "health_score": self.health_score,
+            "critical_findings": self.critical_findings,
+            "llm_summary": self.llm_summary,
+        }
+
+
+@dataclass
+class RCARecord:
+    """Model for Root Cause Analysis (RCA) records."""
+    id: Optional[str] = None
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    primary_service: str = ""
+    symptoms: str = ""
+    suspected_root_cause: str = ""
+    status: str = "active"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
+            "primary_service": self.primary_service,
+            "symptoms": self.symptoms,
+            "suspected_root_cause": self.suspected_root_cause,
+            "status": self.status,
+        }
+
+
+@dataclass
+class SLORecord:
+    """Model for Service Level Objectives (SLOs)."""
+    id: Optional[str] = None
+    service: str = ""
+    objective_percentage: float = 99.9
+    current_availability: float = 100.0
+    budget_remaining: float = 100.0
+    status: str = "on_track"  # on_track, at_risk, breached
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "service": self.service,
+            "objective_percentage": self.objective_percentage,
+            "current_availability": self.current_availability,
+            "budget_remaining": self.budget_remaining,
+            "status": self.status,
+        }
+
+
+@dataclass
+class AlertRuleRecord:
+    """Model for threshold-based alert rules."""
+    id: Optional[str] = None
+    name: str = ""
+    service: str = "all"
+    condition_json: str = "{}"
+    status: str = "active"  # active, triggered, muted
+    last_triggered_at: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "service": self.service,
+            "condition_json": self.condition_json,
+            "status": self.status,
+            "last_triggered_at": self.last_triggered_at,
+        }
+
+
+@dataclass
+class ConfigEventRecord:
+    """Model for configuration changes and deployment events."""
+    id: Optional[str] = None
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    service: str = ""
+    event_type: str = "deploy"  # deploy, scale, config_change
+    description: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp.isoformat() if isinstance(self.timestamp, datetime) else self.timestamp,
+            "service": self.service,
+            "event_type": self.event_type,
+            "description": self.description,
         }

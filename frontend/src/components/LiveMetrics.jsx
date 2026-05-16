@@ -139,14 +139,14 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-[#0d1117] border border-[#30363d] p-3 rounded-lg shadow-2xl text-[10px] font-mono">
-          <p className="text-gray-500 mb-2 border-b border-[#30363d] pb-1">{label}</p>
-          <div className="space-y-1">
-            <p className="text-[#10b981] flex justify-between gap-4">
+        <div className="bg-surface border border-subtle p-3 rounded-lg shadow-lg text-[10px] font-mono text-primary font-sans">
+          <p className="text-muted mb-2 border-b border-subtle pb-1 font-bold">{label}</p>
+          <div className="space-y-1.5 font-mono">
+            <p className="text-accent-emerald flex justify-between gap-4">
                 <span>CPU:</span>
                 <span className="font-bold">{payload[0].value}%</span>
             </p>
-            <p className="text-[#06b6d4] flex justify-between gap-4">
+            <p className="text-accent-cyan flex justify-between gap-4">
                 <span>MEM:</span>
                 <span className="font-bold">{payload[1].value}%</span>
             </p>
@@ -161,28 +161,28 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
     <motion.div
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="bg-[#0d1117] border border-[#30363d] rounded-xl p-6 shadow-2xl h-full flex flex-col"
+      className="bg-surface border border-subtle rounded-xl p-6 shadow-sm h-full flex flex-col text-primary font-sans"
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
         {metricCards.map((card, idx) => (
           <motion.div
             key={idx}
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-[#161b22]/50 border border-[#30363d] rounded-xl p-4 relative overflow-hidden group hover:border-[#444c56] transition-all"
+            className="bg-elevated border border-subtle rounded-xl p-4 relative overflow-hidden group hover:border-accent-violet transition-all shadow-xs"
           >
             {/* Corner Accent */}
             <div className="absolute top-0 right-0 w-8 h-8 opacity-20 pointer-events-none" 
                  style={{ background: `radial-gradient(circle at top right, ${card.color}, transparent)` }}></div>
             
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: `${card.color}15`, color: card.color }}>
+            <div className="flex items-center gap-3 mb-2 font-mono font-medium">
+              <div className="p-2.5 rounded-lg shadow-2xs" style={{ backgroundColor: `${card.color}15`, color: card.color }}>
                 <card.icon size={18} />
               </div>
-              <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">{card.label}</span>
+              <span className="text-xs text-muted uppercase tracking-wider">{card.label}</span>
             </div>
-            <div className="text-2xl font-mono font-black text-gray-100 tracking-tight"
+            <div className="text-2xl font-black text-primary tracking-tight font-mono mt-1"
                  style={{ textShadow: `0 0 20px ${card.glow}` }}>
               {card.value}
             </div>
@@ -191,11 +191,11 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
       </div>
 
       {/* Recharts Area Chart */}
-      <div className="w-full bg-[#161b22]/30 rounded-xl border border-[#30363d] p-5 relative mt-auto" style={{ height: 240 }}>
-        <h4 className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">
+      <div className="w-full bg-elevated/40 rounded-xl border border-subtle p-5 relative mt-auto shadow-inner" style={{ height: 260 }}>
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-4 font-sans">
           Cluster Resource Utilization (Time-Series)
         </h4>
-        <div style={{ height: 160 }}>
+        <div style={{ height: 170 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={history}
@@ -207,22 +207,22 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorMem" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#0284c7" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#30363d" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bg-border)" vertical={false} />
               <XAxis
                 dataKey="time"
-                stroke="#484f58"
-                fontSize={9}
+                stroke="var(--text-muted)"
+                fontSize={10}
                 tickMargin={10}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                stroke="#484f58"
-                fontSize={9}
+                stroke="var(--text-muted)"
+                fontSize={10}
                 tickFormatter={(val) => `${val}%`}
                 axisLine={false}
                 tickLine={false}
@@ -243,7 +243,7 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
               <Area
                 type="monotone"
                 dataKey="memory"
-                stroke="#06b6d4"
+                stroke="#0284c7"
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorMem)"
@@ -255,14 +255,14 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
         </div>
         
         {/* Legend */}
-        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-[#30363d]/50">
+        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-subtle font-mono">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-1 bg-[#10b981] rounded-full shadow-[0_0_8px_#10b981]"></div>
-            <span className="text-[9px] font-mono text-gray-400 font-bold uppercase tracking-wider">CPU Load</span>
+            <div className="w-3 h-1 bg-accent-emerald rounded-full shadow-2xs"></div>
+            <span className="text-xs text-muted font-bold uppercase tracking-wider">CPU Load</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-1 bg-[#06b6d4] rounded-full shadow-[0_0_8px_#06b6d4]"></div>
-            <span className="text-[9px] font-mono text-gray-400 font-bold uppercase tracking-wider">Memory Pressure</span>
+            <div className="w-3 h-1 bg-accent-cyan rounded-full shadow-2xs"></div>
+            <span className="text-xs text-muted font-bold uppercase tracking-wider">Memory Pressure</span>
           </div>
         </div>
       </div>

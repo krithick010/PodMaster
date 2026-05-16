@@ -38,46 +38,48 @@ export function AIRecommendations() {
   };
 
   if (loading) {
-    return <div className="rounded-xl border animate-pulse h-64" style={{ background: "#0d1117", borderColor: "#30363d" }}></div>;
+    return <div className="rounded-xl border border-subtle bg-surface animate-pulse h-64 shadow-sm"></div>;
   }
 
   return (
-    <div className="rounded-xl border shadow-2xl p-6 relative overflow-hidden"
-         style={{ background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)", borderColor: "#30363d" }}>
+    <div className="rounded-xl border border-subtle shadow-sm p-6 relative overflow-hidden bg-surface text-primary font-sans font-medium">
       
       {/* Background patterns */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.03]" 
-           style={{ backgroundImage: 'linear-gradient(90deg, #fff 1px, transparent 1px), linear-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+           style={{ backgroundImage: 'linear-gradient(90deg, #000 1px, transparent 1px), linear-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-      <div className="flex items-center justify-between mb-6 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded bg-cyan-500/10 border border-cyan-500/25">
-            <Terminal size={18} className="text-cyan-400" />
+      <div className="flex items-center justify-between mb-6 relative z-10 font-sans">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20 shadow-2xs">
+            <Terminal size={20} className="text-accent-cyan" />
           </div>
           <div>
-            <h3 className="text-sm font-mono font-bold text-gray-200 uppercase tracking-widest">
+            <h3 className="text-sm font-bold text-primary uppercase tracking-wider font-sans">
               AI Action Recommendations
             </h3>
-            <div className="text-[9px] font-mono text-gray-500 mt-0.5">AUTONOMOUS OPTIMIZATION STRATEGY</div>
+            <div className="text-[10px] font-mono text-muted mt-0.5">AUTONOMOUS OPTIMIZATION STRATEGY</div>
           </div>
         </div>
-        <div className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-tighter">
+        <div className="bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider shadow-2xs">
           {recommendations.length} Detected Issues
         </div>
       </div>
 
       {recommendations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-500 relative z-10">
-          <CheckCircle2 size={40} className="text-emerald-500/40 mb-3" />
-          <p className="text-[11px] font-mono uppercase tracking-[0.2em]">Cluster is in optimal state</p>
+        <div className="flex flex-col items-center justify-center py-16 text-muted relative z-10 font-sans font-medium">
+          <CheckCircle2 size={44} className="text-accent-emerald/60 mb-3.5" />
+          <p className="text-xs font-sans uppercase font-bold tracking-wider">Cluster is in optimal state</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10 font-sans font-medium">
           <AnimatePresence mode="popLayout">
             {recommendations.slice(0, 3).map((rec, idx) => {
               const isCrit = rec.priority === "critical";
-              const themeColor = isCrit ? "#ef4444" : rec.priority === "warning" ? "#f59e0b" : "#06b6d4";
-              
+              const themeClass = isCrit ? "accent-red" : rec.priority === "warning" ? "accent-amber" : "accent-cyan";
+              const borderClass = isCrit ? "border-accent-red/30" : rec.priority === "warning" ? "border-accent-amber/30" : "border-accent-cyan/30";
+              const bgBadge = isCrit ? "bg-accent-red text-white" : rec.priority === "warning" ? "bg-accent-amber text-white" : "bg-accent-cyan text-white";
+              const bgIcon = isCrit ? "bg-accent-red/10 text-accent-red border-accent-red/20" : rec.priority === "warning" ? "bg-accent-amber/10 text-accent-amber border-accent-amber/20" : "bg-accent-cyan/10 text-accent-cyan border-accent-cyan/20";
+
               return (
                 <motion.div
                   key={rec.id || idx}
@@ -85,52 +87,45 @@ export function AIRecommendations() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="rounded-lg border p-4 relative overflow-hidden group transition-all hover:bg-white/[0.02]"
-                  style={{ 
-                    background: "#0d1117", 
-                    borderColor: `${themeColor}20`,
-                    boxShadow: `inset 0 0 20px ${themeColor}05`
-                  }}
+                  className={`rounded-xl border ${borderClass} bg-elevated p-5 relative overflow-hidden group transition-all hover:bg-surface shadow-2xs`}
                 >
                   {/* Vertical accent */}
-                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: themeColor, opacity: 0.3 }} />
+                  <div className={`absolute top-0 left-0 w-1.5 h-full bg-${themeClass}`} />
 
                   {/* Priority Badge */}
-                  <div className="absolute top-0 right-0 px-2.5 py-1 text-[9px] font-mono font-black uppercase tracking-widest rounded-bl-lg"
-                       style={{ background: themeColor, color: "#0d1117" }}>
+                  <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-mono font-black uppercase tracking-wider rounded-bl-xl shadow-2xs ${bgBadge}`}>
                     {rec.priority}
                   </div>
 
-                  <div className="flex items-start gap-4 pt-2">
-                    <div className="p-2.5 rounded-lg shrink-0" 
-                         style={{ background: `${themeColor}15`, border: `1px solid ${themeColor}25`, color: themeColor }}>
+                  <div className="flex items-start gap-4 pt-2 font-sans">
+                    <div className={`p-3 rounded-lg shrink-0 border shadow-2xs ${bgIcon}`}>
                       {getIcon(rec.action)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-[13px] font-bold text-gray-100 mb-1 leading-tight">{rec.action}</h4>
-                      <p className="text-[11px] text-gray-400 mb-4 leading-relaxed line-clamp-2">
+                      <h4 className="text-sm font-bold text-primary mb-1.5 leading-tight">{rec.action}</h4>
+                      <p className="text-xs text-secondary mb-4 leading-relaxed line-clamp-2">
                         {rec.explanation}
                       </p>
                       
-                      <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <div className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10">
+                      <div className="flex flex-wrap items-center gap-2 mb-4 font-mono">
+                        <div className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-surface border border-subtle text-primary shadow-2xs font-semibold">
                           {rec.target_pod || 'Cluster'}
                         </div>
-                        <div className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 text-gray-400">
+                        <div className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-surface border border-subtle text-muted shadow-2xs">
                           Est: {rec.estimated_time || '2m'}
                         </div>
                       </div>
 
                       {rec.kubectl_command && (
-                        <div className="bg-[#05070a] rounded border border-white/5 p-2 flex items-center justify-between group/cmd transition-colors hover:border-cyan-500/30">
-                          <code className="text-[10px] text-emerald-400 font-mono truncate mr-2">
+                        <div className="bg-surface rounded-lg border border-subtle p-2.5 flex items-center justify-between group/cmd transition-colors shadow-inner font-mono">
+                          <code className="text-[11px] text-accent-emerald font-mono truncate mr-2 font-bold">
                             $ {rec.kubectl_command}
                           </code>
                           <button 
                             onClick={() => copyToClipboard(rec.id || idx, rec.kubectl_command)}
-                            className="p-1 hover:bg-white/10 rounded transition-colors text-gray-500 hover:text-white"
+                            className="p-1.5 hover:bg-elevated rounded-md transition-colors text-muted hover:text-primary border border-transparent hover:border-subtle shadow-2xs"
                           >
-                            {copiedId === (rec.id || idx) ? <CheckCircle2 size={12} className="text-emerald-400"/> : <Copy size={12} />}
+                            {copiedId === (rec.id || idx) ? <CheckCircle2 size={14} className="text-accent-emerald"/> : <Copy size={14} />}
                           </button>
                         </div>
                       )}

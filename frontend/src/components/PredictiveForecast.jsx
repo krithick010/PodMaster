@@ -26,7 +26,7 @@ export function PredictiveForecast({ podName }) {
   }, [podName]);
 
   if (loading) {
-    return <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-6 animate-pulse h-80 shadow-2xl"></div>;
+    return <div className="bg-surface border border-subtle rounded-xl p-6 animate-pulse h-80 shadow-sm"></div>;
   }
 
   const currentData = tab === "cpu" ? forecast?.cpu_forecast : forecast?.memory_forecast;
@@ -34,22 +34,22 @@ export function PredictiveForecast({ podName }) {
 
   if (isWarmingUp) {
     return (
-      <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-5 shadow-2xl h-full flex flex-col relative overflow-hidden">
-        <div className="flex justify-between items-center mb-4 relative z-10">
+      <div className="bg-surface border border-subtle rounded-xl p-6 shadow-sm h-full flex flex-col relative overflow-hidden text-primary font-sans">
+        <div className="flex justify-between items-center mb-4 relative z-10 font-sans">
           <div>
-            <h3 className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-[0.2em]">Predictive Projection</h3>
-            <p className="text-[9px] font-mono text-gray-500 mt-1 uppercase">EWMA + Polynomial Regression Engine</p>
+            <h3 className="text-xs font-bold text-primary uppercase tracking-wider font-sans">Predictive Projection</h3>
+            <p className="text-[10px] font-mono text-muted mt-1 uppercase">EWMA + Polynomial Regression Engine</p>
           </div>
-          <div className="flex bg-[#161b22] rounded-lg p-1 border border-[#30363d]">
-            <button onClick={() => setTab("cpu")} className={`px-3 py-1 text-[10px] font-mono font-bold rounded transition-colors ${tab === "cpu" ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500'}`}>CPU</button>
-            <button onClick={() => setTab("memory")} className={`px-3 py-1 text-[10px] font-mono font-bold rounded transition-colors ${tab === "memory" ? 'bg-violet-500/20 text-violet-400' : 'text-gray-500'}`}>MEM</button>
+          <div className="flex bg-elevated rounded-lg p-1 border border-subtle shadow-2xs font-mono">
+            <button onClick={() => setTab("cpu")} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${tab === "cpu" ? 'bg-accent-cyan/15 text-accent-cyan' : 'text-muted'}`}>CPU</button>
+            <button onClick={() => setTab("memory")} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${tab === "memory" ? 'bg-accent-violet/15 text-accent-violet' : 'text-muted'}`}>MEM</button>
           </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center relative z-10">
-          <div className="w-10 h-10 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin shadow-[0_0_15px_rgba(6,182,212,0.3)]" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center relative z-10 font-mono">
+          <div className="w-10 h-10 border-2 border-accent-cyan/30 border-t-accent-cyan rounded-full animate-spin shadow-2xs" />
           <div className="space-y-1">
-            <div className="text-xs font-mono font-black text-gray-200 uppercase tracking-widest">Calibrating Engine...</div>
-            <div className="text-[10px] font-mono text-gray-500">Accumulating telemetry for <span className="text-cyan-400">{podName}</span></div>
+            <div className="text-xs font-black text-primary uppercase tracking-widest font-sans">Calibrating Engine...</div>
+            <div className="text-xs text-muted font-mono">Accumulating telemetry for <span className="text-accent-cyan font-bold">{podName}</span></div>
           </div>
         </div>
         {/* Background Grid */}
@@ -65,7 +65,7 @@ export function PredictiveForecast({ podName }) {
     chart: {
       type: 'area',
       height: 180,
-      fontFamily: 'monospace',
+      fontFamily: 'inherit',
       toolbar: { show: false },
       background: 'transparent',
       animations: {
@@ -74,7 +74,7 @@ export function PredictiveForecast({ podName }) {
         speed: 800,
       }
     },
-    colors: tab === "cpu" ? ['#06b6d4', '#ef4444'] : ['#a78bfa', '#f59e0b'],
+    colors: tab === "cpu" ? ['#0284c7', '#ef4444'] : ['#6366f1', '#f59e0b'],
     fill: {
       type: 'gradient',
       gradient: {
@@ -90,20 +90,20 @@ export function PredictiveForecast({ podName }) {
       type: 'numeric',
       labels: {
         formatter: (val) => `${val}m`,
-        style: { colors: '#484f58', fontSize: '9px', fontFamily: 'monospace' }
+        style: { colors: 'var(--text-muted)', fontSize: '10px', fontFamily: 'inherit' }
       },
       axisBorder: { show: false },
       axisTicks: { show: false }
     },
     yaxis: {
       labels: {
-        style: { colors: '#484f58', fontSize: '9px', fontFamily: 'monospace' },
+        style: { colors: 'var(--text-muted)', fontSize: '10px', fontFamily: 'inherit' },
         formatter: (val) => tab === "cpu" ? `${val.toFixed(1)}%` : `${(val / (1024*1024)).toFixed(0)}MB`
       }
     },
-    grid: { borderColor: '#30363d', strokeDashArray: 3 },
-    theme: { mode: 'dark' },
-    tooltip: { theme: 'dark', x: { show: false } },
+    grid: { borderColor: 'var(--bg-border)', strokeDashArray: 3 },
+    theme: { mode: 'light' },
+    tooltip: { theme: 'light', x: { show: false } },
     legend: { show: false }
   };
 
@@ -121,33 +121,33 @@ export function PredictiveForecast({ podName }) {
   ];
 
   return (
-    <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-5 shadow-2xl h-full flex flex-col relative overflow-hidden">
+    <div className="bg-surface border border-subtle rounded-xl p-6 shadow-sm h-full flex flex-col relative overflow-hidden text-primary font-sans">
       
       {/* Header */}
-      <div className="flex justify-between items-start mb-4 relative z-10">
+      <div className="flex justify-between items-start mb-4 relative z-10 font-sans">
         <div>
-          <h3 className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          <h3 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2.5 font-sans">
             Predictive Projection
             {hasLeak && (
-              <span className="flex items-center gap-1 bg-red-500/10 text-red-500 px-2 py-0.5 rounded border border-red-500/30 text-[8px] animate-pulse">
-                <AlertTriangle size={10} /> CRITICAL TREND
+              <span className="flex items-center gap-1 bg-accent-red/10 text-accent-red px-2 py-0.5 rounded border border-accent-red/20 text-[10px] animate-pulse font-mono shadow-2xs">
+                <AlertTriangle size={12} /> CRITICAL TREND
               </span>
             )}
           </h3>
-          <p className="text-[9px] font-mono text-gray-500 mt-1 uppercase">Autoregressive Trend Analysis</p>
+          <p className="text-[10px] font-mono text-muted mt-1 uppercase">Autoregressive Trend Analysis</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-[#161b22] rounded-lg p-1 border border-[#30363d]">
+        <div className="flex bg-elevated rounded-lg p-1 border border-subtle font-mono shadow-2xs">
           <button 
             onClick={() => setTab("cpu")}
-            className={`px-3 py-1 text-[10px] font-mono font-bold rounded transition-all ${tab === "cpu" ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+            className={`px-3 py-1 text-xs font-bold rounded transition-all ${tab === "cpu" ? 'bg-accent-cyan/15 text-accent-cyan' : 'text-muted hover:text-primary'}`}
           >
             CPU
           </button>
           <button 
             onClick={() => setTab("memory")}
-            className={`px-3 py-1 text-[10px] font-mono font-bold rounded transition-all ${tab === "memory" ? 'bg-violet-500/20 text-violet-400' : 'text-gray-500 hover:text-gray-300'}`}
+            className={`px-3 py-1 text-xs font-bold rounded transition-all ${tab === "memory" ? 'bg-accent-violet/15 text-accent-violet' : 'text-muted hover:text-primary'}`}
           >
             MEM
           </button>
@@ -155,32 +155,32 @@ export function PredictiveForecast({ podName }) {
       </div>
 
       {/* Chart */}
-      <div className="flex-1 min-h-[160px] -ml-2 relative z-10">
+      <div className="flex-1 min-h-[170px] -ml-2 relative z-10">
         <ReactApexChart options={chartOptions} series={series} type="area" height="100%" />
       </div>
 
       {/* Footer Info */}
-      <div className="flex items-center justify-between mt-2 pt-3 border-t border-[#30363d] relative z-10">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-subtle relative z-10 font-mono">
+        <div className="flex items-center gap-5">
             <div className="flex flex-col">
-                <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Current</span>
-                <span className="text-xs font-mono font-black text-gray-200">
+                <span className="text-[10px] text-muted uppercase font-sans font-medium">Current</span>
+                <span className="text-sm font-black text-primary font-mono mt-0.5">
                     {tab === "cpu" ? currentData.historical[histLen - 1]?.toFixed(1) + '%' : (currentData.historical[histLen - 1] / (1024*1024))?.toFixed(0) + 'MB'}
                 </span>
             </div>
-            <div className="flex flex-col border-l border-[#30363d] pl-4">
-                <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Confidence</span>
-                <span className="text-xs font-mono font-black text-cyan-500">{(currentData.confidence * 100).toFixed(0)}%</span>
+            <div className="flex flex-col border-l border-subtle pl-5 font-mono">
+                <span className="text-[10px] text-muted uppercase font-sans font-medium">Confidence</span>
+                <span className="text-sm font-black text-accent-cyan mt-0.5">{(currentData.confidence * 100).toFixed(0)}%</span>
             </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#161b22] border border-[#30363d] rounded text-[10px] font-mono">
-          <span className="text-gray-500">TREND:</span>
+        <div className="flex items-center gap-2.5 px-3.5 py-2 bg-elevated border border-subtle rounded-lg text-xs font-mono shadow-2xs font-semibold">
+          <span className="text-muted font-sans font-normal">TREND:</span>
           {currentData.trend === "up" ? (
-            <span className="text-red-500 flex items-center gap-1 font-bold"><TrendingUp size={12} /> INCREASING</span>
+            <span className="text-accent-red flex items-center gap-1.5 font-bold"><TrendingUp size={14} /> INCREASING</span>
           ) : currentData.trend === "down" ? (
-            <span className="text-emerald-500 flex items-center gap-1 font-bold"><TrendingDown size={12} /> DECREASING</span>
+            <span className="text-accent-emerald flex items-center gap-1.5 font-bold"><TrendingDown size={14} /> DECREASING</span>
           ) : (
-            <span className="text-gray-400 font-bold">STABLE</span>
+            <span className="text-muted font-bold font-sans">STABLE</span>
           )}
         </div>
       </div>

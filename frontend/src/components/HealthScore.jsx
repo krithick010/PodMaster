@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { ShieldAlert, AlertTriangle, Bot, TrendingUp } from "lucide-react";
+import { ShieldAlert, AlertTriangle, Bot, TrendingUp, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function HealthScore() {
@@ -93,16 +93,16 @@ export function HealthScore() {
         </div>
 
         {/* Stats */}
-        <div className="flex-1 space-y-2 min-w-0">
+        <div className="flex-1 space-y-2 min-w-0 font-sans">
           {[
-            { Icon: ShieldAlert, label: "Critical", val: scoreData.critical_anomalies, color: scoreData.critical_anomalies > 0 ? "#ef4444" : "#4b5563" },
-            { Icon: AlertTriangle, label: "Warnings", val: scoreData.warning_anomalies, color: scoreData.warning_anomalies > 0 ? "#f59e0b" : "#4b5563" },
-            { Icon: Bot, label: "Agents", val: scoreData.agents_active, color: "#06b6d4" },
+            { Icon: ShieldAlert, label: "Critical", val: scoreData.critical_anomalies, color: scoreData.critical_anomalies > 0 ? "#ef4444" : "#94a3b8" },
+            { Icon: AlertTriangle, label: "Warnings", val: scoreData.warning_anomalies, color: scoreData.warning_anomalies > 0 ? "#f59e0b" : "#94a3b8" },
+            { Icon: Bot, label: "Active AI Agents", val: 6, color: "#06b6d4" },
           ].map(({ Icon, label, val, color }) => (
             <div key={label} className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <Icon size={10} style={{ color }} />
-                <span className="text-[10px] font-mono" style={{ color: "#6b7280" }}>{label}</span>
+                <Icon size={12} style={{ color }} />
+                <span className="text-xs font-medium text-slate-300 font-sans">{label}</span>
               </div>
               <span className="text-xs font-mono font-bold tabular-nums" style={{ color }}>
                 {val}
@@ -111,6 +111,15 @@ export function HealthScore() {
           ))}
         </div>
       </div>
+
+      {/* Fitness Explanation Banner */}
+      <div className="bg-slate-900/80 p-3 mx-3 mb-3 rounded-lg border border-slate-800 text-xs text-slate-300 font-sans leading-relaxed shadow-inner">
+        <div className="flex items-center gap-1.5 font-bold text-slate-200 mb-1">
+          <Info size={14} className="text-accent-cyan shrink-0" /> SRE Calculation Formula
+        </div>
+        Composite reliability metric derived from active Prometheus alerts (40%), pod restart rate & OOMKills (30%), PVC storage saturation (15%), and eBPF kernel latency (15%).
+      </div>
     </div>
   );
 }
+

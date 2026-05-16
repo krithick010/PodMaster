@@ -1,479 +1,162 @@
-# KubeVision AI 🔮
+# PodMaster 🔮
+**Enterprise Kubernetes SRE & AI Observability Platform**
 
-**Next-generation Kubernetes observability with autonomous AI agents**
+A full-stack, state-of-the-art Kubernetes monitoring, root cause analysis, and chaos engineering platform. PodMaster combines real-time multi-namespace metrics collection, parallel AI daemon anomaly detection, and natural language LLM synthesis to provide unprecedented observability into cluster health.
 
-A full-stack Kubernetes monitoring and alerting platform that combines real-time metrics collection, ML-powered anomaly detection, and LLM-driven insights to provide unprecedented visibility into cluster health.
+---
 
-## ✨ Features
+## ✨ Enterprise SRE & Observability Features
 
-### 🤖 Six Autonomous Detection Agents (Run in Parallel)
+### 🤖 Multi-Agent Anomaly Detection Subsystem
+Six autonomous daemons run continuously in parallel every 10-second collection cycle:
+1. **CPU Agent** - Detects cgroup core utilization spikes (>80% warning, >95% critical).
+2. **Memory Agent** - Identifies working set saturation and OOM risks (>80% warning, >95% critical).
+3. **Network Agent** - Monitors packet loss, throughput anomalies, and latency spikes.
+4. **Storage Agent** - Tracks PVC volume exhaustion and I/O saturation.
+5. **LogIO Agent** - Synchronizes container log streams with CPU/memory saturation spikes.
+6. **Scheduling Agent** - Detects pod eviction, scheduling bottlenecks, and node pressure.
+7. **Orchestrator** - Clusters concurrent anomalies into unified Root Cause Analysis (RCA) incident records.
 
-1. **CPU Agent** - Detects CPU spikes (>80% warning, >95% critical)
-2. **Memory Agent** - Identifies memory leaks and pressure (>80% warning, >95% critical)
-3. **Network Agent** - Detects network traffic anomalies (>10MB/s warning, >50MB/s critical)
-4. **Storage Agent** ⭐ **NEW** - PVC storage pressure and I/O correlation (>80% warning, >90% critical)
-5. **LogIO Agent** ⭐ **NEW** - Pod crash patterns and error rate spikes (>1 err/s warning, >2 err/s critical)
-6. **Scheduling Agent** ⭐ **NEW** - Pod scheduling failures and node pressure detection
+### 🎯 15 Core Observability Pillars
+- **Golden Signals v2** - Dedicated real-time tracking for Traffic (RPS), Latency (ms), Error Rate (%), and Saturation (%).
+- **Service Level Objectives (SLOs) & Error Budgets** - Automated tracking of 99.9% availability targets with remaining error budget progress bars.
+- **Service Topology Map v2** - High-contrast Cytoscape.js network graph colored by node health (`OK`, `WARN`, `CRIT`) with white compound namespace pill badges.
+- **Cluster Explorer Hierarchy** - Expandable tree navigation (`Cluster` → `Namespaces` → `Deployments` → `Pods`) embedded directly in the sidebar.
+- **RCA Incident Records** - Automated detection of multi-symptom cluster incidents with suspected root causes.
+- **Alert Rules Automation** - Configurable alerting threshold engine with active trigger status.
+- **Logs + Metrics Correlation** - Visual timeline matching resource saturation spikes directly with correlated log output.
+- **Top Problem Hotspots** - Aggregated rankings of problem pods sorted by CPU, Memory, Restart Counts, and Error Rates.
+- **"Ask PodMaster" Natural Language AI Query Bar** - Instant conversational SRE interaction powered by full cluster telemetry context.
+- **Deep-Dive AI RCA Report Generator** - On-demand structured SRE incident reports (Impact, Timeline, Root Cause, Remediation Next Steps).
+- **Namespace Health & Cost Overview** - Efficiency ratings, resource allocation breakdowns, and cost optimization scores per namespace.
+- **Backend CacheManager** - Ultra-low latency aggregation layer refreshed asynchronously every 10 seconds.
+- **Config Event Overlays** - Real-time tracking of deployment updates, autoscale triggers, and configuration changes.
+- **LLM Observability Telemetry** - Performance monitoring for the AI reasoning engine (rolling latency, total requests, success rates).
+- **Resilient Fallback Architecture** - Seamless transition to clearly labeled simulated telemetry with "DEMO MODE" badges when external daemons are unreachable.
 
-### 🎯 Key Capabilities
+### ⚡ Chaos Engineering Sandbox & Undo Mechanics
+- **5 Controlled Scenarios**: CPU Stress, Memory Leak, I/O Pressure, Network Throttling, and Log Flood.
+- **5-Second Staging Revoke Window**: Triggering any scenario initiates a 5-second countdown with an explicit **"REVOKE (5s)"** button, allowing operators to safely cancel unintended destructive tests.
+- **Active Subroutine Cancellation**: Active chaos injections feature individual red **Trash icon** abort controls alongside a global **"Abort All"** emergency stop.
+- **Autonomous Recovery**: All chaos simulations gracefully auto-recover to nominal state after 90 seconds.
 
-- **Multi-Namespace Support** - Automatic discovery and monitoring across all namespaces
-- **Real-Time Dashboard** - WebSocket-driven live updates with zero latency
-- **LLM-Powered Insights** - Ollama integration with fallback templates for anomaly explanations
-- **Storage Correlation** - Unique PVC + restart count correlation for I/O stress detection
-- **Dependency Mapping** - Cross-namespace service dependency tracking and cascading failure detection
-- **Forecasting** - EWMA-based trend prediction for proactive scaling
-- **Chaos Engine** - Controlled anomaly injection for testing and demos (auto-recover in 90s)
-- **Actionable Recommendations** - Auto-generated kubectl commands for remediation
+---
 
-### 🎨 Design
+## 🖥️ Tabbed Workspace Architecture (`Dashboard.jsx`)
 
-- **Dark-First Cyberpunk UI** - Custom color system with cyan/violet/emerald accents
-- **Skeleton Screens** - No spinners, shimmer animations for smooth perceived performance
-- **Responsive Grid Layout** - Works on desktop, tablet, mobile
-- **Real-Time Animations** - Framer Motion for smooth, engaging transitions
+PodMaster features an elegant, premium light-theme UI organized into a clean 5-view tabbed workspace:
+1. **Overview & Signals**: Live Golden Signals, SLO availability, and Namespace Cost allocations.
+2. **Topology & Hotspots**: Interactive Cytoscape Service Topology Map and Top Problem Pods rankings.
+3. **AI & Correlations**: Ask PodMaster AI search bar, Multi-Agent daemons, and Log-Metric correlation streams.
+4. **Alerts & Timeline**: Configurable Alert Rules panel and Anomaly Incident Timeline with config change overlays.
+5. **Chaos Sandbox**: Cyberpunk terminal-style Chaos Control Center for fault injection and self-healing verification.
 
-## 🏗️ Architecture
+### 🤖 Persistent Floating AI Assistant
+A global SRE copilot modal (`FloatingAIAssistant.jsx`) is docked in the bottom right corner across all application routes, offering instant query resolution, diagnostic prompt shortcuts, and real-time streaming answers.
+
+---
+
+## 🏛️ Architecture & Data Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    KubeVision AI Platform                    │
-├──────────────────────┬──────────────────┬──────────────────┤
-│   Frontend (React)   │  Backend (API)   │   Demo Workload  │
-│  - Dashboard UI      │  - FastAPI       │   - student-portal
-│  - Real-time Updates │  - Agents        │   - attendance-svc
-│  - Charts & Graphs   │  - Orchestrator  │   - result-svc
-│  - WebSocket Client  │  - LLM Client    │   - notification-svc
-└──────────────────────┴──────────────────┴──────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-    Kubernetes         Prometheus          Ollama
-    (Pod Metrics)      (Time-Series)      (LLM)
-    (Events)           (Multi-Namespace)   (phi3.5)
-    (Logs)             (10s scrape)        (fallback)
+┌─────────────────────────────────────────────────────────────────┐
+│                     PodMaster SRE Platform                      │
+├──────────────────────┬──────────────────────┬───────────────────┤
+│   Frontend (React)   │   Backend (FastAPI)  │   Demo Cluster    │
+│  - 5-Tab Workspace   │  - Multi-Agent Loop  │   - student-portal
+│  - Cytoscape Map     │  - CacheManager      │   - attendance-svc
+│  - WebSocket Sync    │  - LLM Synthesizer   │   - result-svc
+│  - Floating Copilot  │  - SQLite Database   │   - notif-svc     │
+└──────────────────────┴──────────────────────┴───────────────────┘
+            │                     │                     │
+      ┌─────┴───────────────┐     ├─────────────────────┤
+      ▼                     ▼     ▼                     ▼
+ WebSocket              Prometheus Client           Ollama / OpenRouter
+ (100ms sync)           (10s Scrape Engine)         (Phi-3 AI Subsystem)
 ```
 
-### Data Flow
+### Cluster Workload Distribution (9 Active Pods)
+The demo Kubernetes university microservices cluster contains precisely 9 active pods across 3 namespaces:
+- **`university-frontend`**: `student-portal-0`, `student-portal-1`, `notification-service-0`, `notification-service-1`
+- **`university-backend`**: `attendance-service-0`, `attendance-service-1`, `result-service-0`, `result-service-1`
+- **`university-data`**: `postgres-db-0` (Persistent PostgreSQL database with PVC monitoring)
 
-1. **Metric Collection** (Every 10 seconds)
-   - Prometheus API queries multi-namespace pod metrics
-   - K8s API fetches pod logs, events, pending status
-   - PVC metrics queried via Prometheus volume stats
-
-2. **Anomaly Detection** (Parallel)
-   - 6 agents analyze metrics independently
-   - Each agent emits Anomaly objects with severity
-   - Cross-pod correlation matrix computed
-
-3. **LLM Enrichment** (Per Anomaly)
-   - Ollama generates human-readable insight
-   - Falls back to template strings if unavailable
-   - Stored in SQLite for history
-
-4. **Real-Time Delivery**
-   - WebSocket broadcasts snapshot on connect
-   - Incremental updates every cycle
-   - Client reconnects automatically with exponential backoff
+---
 
 ## 📦 Tech Stack
 
-**Backend**
-- **FastAPI** 0.110.0 - Async web framework
-- **aiosqlite** 0.20.0 - Non-blocking SQLite
-- **kubernetes** 29.0.0 - K8s Python client
-- **prometheus-api-client** 0.5.4 - Metrics queries
-- **numpy/scipy** - Forecasting and correlation
-- **httpx** - Async HTTP for Ollama
+### Backend
+- **FastAPI** (`0.110.0`): High-performance async API backend.
+- **aiosqlite** (`0.20.0`): Non-blocking asynchronous SQLite engine for RCA and SLO storage.
+- **kubernetes** (`29.0.0`): Kubernetes API client for pod logs and events.
+- **prometheus-api-client**: Direct PromQL time-series metrics extraction.
+- **httpx**: Asynchronous HTTP communication with Ollama/OpenRouter LLMs.
 
-**Frontend**
-- **React** 19 - UI framework
-- **Framer Motion** 11 - Animations
-- **Recharts** 2.12 - Charts
-- **Tailwind CSS** 3.4 - Styling
-- **Lucide Icons** - SVG icons
-- **React Router** v6 - Navigation
+### Frontend
+- **React 19 & Vite**: Ultra-fast modern frontend build system.
+- **Framer Motion**: Smooth micro-animations and seamless view transitions.
+- **Cytoscape.js & cose-bilkent**: High-performance force-directed topology rendering.
+- **Recharts**: Responsive SVG time-series charts.
+- **Lucide Icons**: Beautiful, clean vector iconography.
 
-**Infrastructure**
-- **Kubernetes** 1.27+ (local Minikube)
-- **Prometheus** - Metrics scraping
-- **Docker** - Image containerization
-- **Ollama** - Local LLM server
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker
-- kubectl
-- Minikube
-- Node.js 18+
+- Minikube running with Prometheus installed
 - Python 3.11+
+- Node.js 18+
 
-If Minikube is missing on macOS, install it first with `brew install minikube`, then rerun `./quick-start.sh`.
-
-### macOS/Linux
-```bash
-chmod +x quick-start.sh
-./quick-start.sh
-```
-
-If your Docker Desktop memory is limited, override the defaults before starting Minikube:
-```bash
-MINIKUBE_MEMORY=3072 MINIKUBE_CPUS=2 MINIKUBE_DISK_SIZE=15GB ./quick-start.sh
-```
-
-### Windows (PowerShell)
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope CurrentUser
-.\quick-start.ps1
-```
-
-### Access
-
-- **Dashboard**: http://localhost:3000
-- **API Docs**: http://localhost:8000/docs
-- **Backend**: http://localhost:8000
-
-## 🔧 Manual Setup
-
-### 1. Build Workload Images
-
-```bash
-cd workloads
-docker build -t student-portal student-portal/
-docker build -t attendance-service attendance-service/
-docker build -t result-service result-service/
-docker build -t notification-service notification-service/
-cd ..
-```
-
-### 2. Create Namespaces & RBAC
-
-```bash
-kubectl apply -f k8s/namespaces.yaml
-kubectl apply -f k8s/rbac.yaml
-```
-
-### 3. Deploy Workloads
-
-```bash
-kubectl apply -f k8s/university-frontend/
-kubectl apply -f k8s/university-backend/
-kubectl apply -f k8s/university-data/
-```
-
-### 4. Start Backend
-
+### 1. Start Backend Server
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python main.py
+uvicorn main:app --reload --port 8000
 ```
+Backend runs on **http://localhost:8000** (Swagger API Documentation at `http://localhost:8000/docs`).
 
-Backend runs on **http://localhost:8000**
-
-### 5. Start Frontend
-
+### 2. Start Frontend Server
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
+Frontend runs on **http://localhost:5173**.
 
-Frontend runs on **http://localhost:3000**
-
-## 🧪 Testing Anomalies
-
-Use the Chaos Control interface or curl:
-
+### 3. Build Production Bundle
 ```bash
-# CPU Spike
-curl -X POST "http://localhost:8000/api/simulate/cpu-spike?pod=student-portal&namespace=university-frontend"
-
-# Memory Leak
-curl -X POST "http://localhost:8000/api/simulate/memory-leak?pod=student-portal&namespace=university-frontend"
-
-# Storage Pressure
-curl -X POST "http://localhost:8000/api/simulate/storage-pressure?pod=attendance-service&namespace=university-backend"
-
-# Log Flood
-curl -X POST "http://localhost:8000/api/simulate/log-flood?pod=notification-service&namespace=university-frontend"
-
-# Network Spike
-curl -X POST "http://localhost:8000/api/simulate/network-spike?pod=result-service&namespace=university-backend"
+cd frontend
+npm run build
 ```
-
-All simulations **auto-recover after 90 seconds**.
-
-## 📊 API Endpoints
-
-### Metrics
-- `GET /api/namespaces` - All namespaces
-- `GET /api/metrics/current?namespace=all` - Pod metrics
-- `GET /api/storage?namespace=all` - PVC metrics
-- `GET /api/forecast?pod_name=<name>` - Forecasts
-
-### Anomalies
-- `GET /api/anomalies/current` - Latest anomalies
-- `GET /api/anomalies/history?hours=24` - Historical data
-- `GET /api/anomalies/export?hours=24` - CSV export
-
-### Agents
-- `GET /api/agents/status` - Agent statuses and findings
-- `GET /api/summary/health` - Cluster health score (A-F)
-
-### Analysis
-- `GET /api/dependencies` - Service dependency graph
-- `GET /api/correlations` - Cross-pod correlations
-- `GET /api/recommendations` - Actionable remediation steps
-
-### WebSocket
-- `WS /ws/metrics` - Real-time updates (connect and receive snapshot, then incremental updates)
-
-### Demo/Testing
-- `POST /api/simulate/{cpu,memory,storage,log,network}-spike` - Chaos injection
-- `GET/POST /api/chaos/status, /enable, /disable` - Chaos engine control
-
-## 📁 Project Structure
-
-```
-PodMaster/
-├── backend/
-│   ├── agents/
-│   │   ├── base_agent.py
-│   │   ├── cpu_agent.py
-│   │   ├── memory_agent.py
-│   │   ├── network_agent.py
-│   │   ├── storage_agent.py         ⭐ NEW
-│   │   ├── logio_agent.py           ⭐ NEW
-│   │   ├── scheduling_agent.py      ⭐ NEW
-│   │   └── orchestrator.py
-│   ├── llm/
-│   │   ├── insight_generator.py
-│   │   └── prompt_templates.py
-│   ├── metrics/
-│   │   ├── prometheus_client.py
-│   │   └── k8s_client.py
-│   ├── storage/
-│   │   ├── database.py
-│   │   └── models.py
-│   ├── forecasting.py
-│   ├── correlation.py
-│   ├── recommendations.py
-│   ├── chaos_engine.py
-│   ├── main.py
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Header.jsx
-│   │   │   ├── AgentStatusStrip.jsx
-│   │   │   ├── MetricsPanel.jsx
-│   │   │   ├── AnomalyTimeline.jsx
-│   │   │   ├── ChaosControl.jsx
-│   │   │   ├── HealthScore.jsx
-│   │   │   └── ... (15+ more)
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── About.jsx
-│   │   │   └── Namespaces.jsx
-│   │   ├── hooks/
-│   │   │   ├── useWebSocket.js
-│   │   │   └── useNamespace.js
-│   │   ├── context/
-│   │   │   ├── ThemeContext.js
-│   │   │   └── NamespaceContext.js
-│   │   ├── index.css
-│   │   ├── App.jsx
-│   │   └── index.js
-│   ├── index.html
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   └── package.json
-│
-├── workloads/
-│   ├── student-portal/
-│   │   ├── app.py
-│   │   ├── Dockerfile
-│   │   └── requirements.txt
-│   ├── attendance-service/
-│   ├── result-service/
-│   └── notification-service/
-│
-├── k8s/
-│   ├── namespaces.yaml
-│   ├── rbac.yaml
-│   ├── university-frontend/
-│   ├── university-backend/
-│   └── university-data/
-│
-├── .env.example
-├── quick-start.sh
-├── quick-start.ps1
-└── README.md
-```
-
-## 🎓 Demo Walkthrough
-
-1. **Open Dashboard** - http://localhost:3000
-   - See real-time pod metrics, agent status, cluster health
-
-2. **Generate CPU Load** - Use Chaos Control or curl:
-   ```bash
-   curl -X POST "http://localhost:8000/api/simulate/cpu-spike?pod=student-portal&namespace=university-frontend"
-   ```
-   - Watch CPU Agent activate and alert in real-time
-   - See LLM insight explain the spike
-
-3. **Test Storage Pressure** - Chaos trigger or direct:
-   ```bash
-   curl -X POST "http://localhost:8000/api/simulate/storage-pressure?pod=attendance-service&namespace=university-backend"
-   ```
-   - Storage Agent detects PVC pressure
-   - If restarts detected, shows unique correlation
-
-4. **Check Recommendations**
-   - Platform suggests `kubectl scale deployment student-portal --replicas=3`
-   - Or `kubectl patch pvc attendance-pvc --patch='{"spec":{"resources":{"requests":{"storage":"10Gi"}}}}'`
-
-5. **Monitor Timeline**
-   - Anomalies appear in real-time timeline
-   - Each anomaly links to metrics and LLM insight
-
-## 🔐 Security
-
-- **RBAC Enabled** - Dedicated `kubevision-backend` service account with limited permissions
-- **No Root** - All containers run as non-root
-- **Secret Management** - Use `.env` for sensitive config (Ollama URL, DB path, etc.)
-
-## 📈 Performance
-
-- **Backend Latency** - <100ms for most queries (aiosqlite async, no blocking)
-- **Frontend Update Rate** - 10 Hz via WebSocket (100ms per cycle)
-- **Prometheus Scrape** - 10-second interval
-- **Storage** - SQLite with 7-day retention, auto-cleanup
-
-## 🧠 LLM Integration
-
-### Ollama Setup
-
-```bash
-# Install Ollama: https://ollama.ai
-ollama pull phi3.5
-ollama serve
-```
-
-Default model: `phi3.5:latest` (can be overridden in `.env`)
-
-### Fallback Templates
-
-If Ollama unavailable:
-- Uses pre-defined templates for common anomalies
-- Supports `{pod_name}`, `{namespace}`, `{description}`, `{metrics_json}` interpolation
-- Always returns human-readable explanation
-
-## 🐛 Troubleshooting
-
-**Backend won't start**
-- Check Python version: `python --version` (need 3.11+)
-- Check Prometheus connectivity: `curl http://prometheus:9090/api/v1/query`
-- Check Kubernetes: `kubectl cluster-info`
-
-**Frontend not updating**
-- Check WebSocket: Browser DevTools → Network → WS → /ws/metrics
-- Check CORS: Should show `Access-Control-Allow-Origin: *`
-- Check connection status in header (green dot = connected)
-
-**Anomalies not detected**
-- Generate load: `curl http://student-portal.university-frontend/load` (CPU spike)
-- Wait 10 seconds for first collection cycle
-- Check API: `curl http://localhost:8000/api/anomalies/current`
-
-## 📝 Configuration
-
-Create `.env` file in project root:
-
-```env
-# Prometheus
-PROMETHEUS_URL=http://prometheus:9090
-PROMETHEUS_SCRAPE_INTERVAL=10
-
-# Kubernetes
-KUBECONFIG=~/.kube/config
-
-# LLM
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=phi3.5:latest
-
-# Database
-DB_PATH=./kubevision.db
-
-# Collection
-COLLECTION_INTERVAL=10
-```
-
-See `.env.example` for all options.
-
-## 🚢 Deployment Options
-
-### Minikube (Development)
-```bash
-./quick-start.sh
-```
-
-### Docker Compose (Single machine)
-Use provided `docker-compose.yml` with all services
-
-### Kubernetes Cluster (Production-like)
-```bash
-kubectl apply -f k8s/
-```
-
-### Multi-Cluster (Enterprise)
-Can be adapted for monitoring multiple clusters by running multiple backend instances with different KUBECONFIG contexts
-
-## 📊 Monitoring KubeVision Itself
-
-Backend exposes Prometheus metrics on `/metrics`:
-- `agent_runs_total` - Total agent executions
-- `anomalies_detected_total` - Total anomalies
-- `collection_duration_seconds` - Time per collection cycle
-
-Add to Prometheus scrape config:
-```yaml
-- job_name: 'kubevision'
-  static_configs:
-    - targets: ['localhost:8000']
-```
-
-## 🤝 Contributing
-
-Issues and PRs welcome! Please follow:
-- Backend: Python 3.11+, async/await patterns, type hints
-- Frontend: React hooks, Tailwind utilities, Framer Motion animations
-
-## 📄 License
-
-Competition Project - Unlicensed
-
-## 🎯 Roadmap
-
-- [ ] GPU monitoring (NVIDIA DCGM)
-- [ ] Advanced anomaly ML (isolation forest, autoencoders)
-- [ ] Multi-region federation
-- [ ] Custom alerting rules editor
-- [ ] Webhook integration (Slack, PagerDuty)
-- [ ] Historical trend analysis dashboard
-- [ ] Anomaly root cause analysis with causal graphs
-
-## 📧 Contact
-
-For competition judges or technical questions, see About page in dashboard.
+Transforms all 2,993 modules into highly optimized production assets.
 
 ---
 
-**Built with ❤️ for next-generation Kubernetes observability**
+## 🧪 Simulation & Testing Guide
+
+You can trigger controlled anomalies directly from the **Chaos Sandbox** tab in the UI or via terminal `curl`:
+```bash
+# CPU Stress Injection
+curl -X POST "http://localhost:8000/api/simulate/cpu-spike?pod_name=student-portal&namespace=university-frontend"
+
+# Memory Leak Injection
+curl -X POST "http://localhost:8000/api/simulate/memory-leak?pod_name=result-service-0&namespace=university-backend"
+
+# PVC Storage Saturation
+curl -X POST "http://localhost:8000/api/simulate/storage-pressure?pod_name=attendance-service&namespace=university-backend"
+```
+*All chaos injections automatically terminate after 90 seconds or can be instantly revoked using the red Trash icon buttons in the UI.*
+
+---
+
+## 🔐 Security & Permissions
+- **RBAC Strict Isolation**: Uses dedicated service accounts with least-privilege role bindings.
+- **Read-Only Telemetry Default**: Telemetry collection loops operate completely read-only against Prometheus endpoints.
+- **Configurable Fallbacks**: Secure `.env` environment loading for custom LLM endpoint routing.
+
+---
+
+**Built with ❤️ for next-generation Kubernetes SRE & AI Observability**

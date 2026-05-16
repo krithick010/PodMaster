@@ -60,18 +60,15 @@ export function useWebSocket() {
       };
 
       ws.current.onerror = (error) => {
-        console.error("WebSocket error:", error);
         setConnectionStatus("error");
       };
 
       ws.current.onclose = () => {
-        console.log("WebSocket disconnected");
         setConnectionStatus("disconnected");
         // Attempt to reconnect with exponential backoff
         attemptReconnect();
       };
     } catch (err) {
-      console.error("Error creating WebSocket:", err);
       setConnectionStatus("error");
       attemptReconnect();
     }
@@ -82,15 +79,10 @@ export function useWebSocket() {
       const delay = baseReconnectDelay * Math.pow(2, reconnectAttempts.current);
       reconnectAttempts.current += 1;
 
-      console.log(
-        `Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`
-      );
-
       reconnectTimeout.current = setTimeout(() => {
         connect();
       }, delay);
     } else {
-      console.error("Max reconnection attempts reached");
       setConnectionStatus("failed");
     }
   }, [connect]);

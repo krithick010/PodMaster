@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import {
-  Cpu, MemoryStick, HardDrive, Network, Terminal, X, Clock, Skull, Zap, CheckCircle2
+  Cpu, MemoryStick, HardDrive, Network, Terminal, X, Clock, Skull, Zap, CheckCircle2, Info, ShieldAlert, Sparkles, Trash2
 } from "lucide-react";
 
 const CHAOS_TYPES = [
@@ -81,11 +81,74 @@ const CHAOS_TYPES = [
 export function ChaosControl() {
   const [loading, setLoading] = useState(null);
   const [activeInjections, setActiveInjections] = useState([]);
+  const [pendingChaos, setPendingChaos] = useState({}); // { [chaos.id]: secondsLeft }
   const [message, setMessage] = useState(null); // { text, ok }
   const timeoutsRef = useRef({});
+  const stagingRefs = useRef({});
   const isAnyActive = activeInjections.length > 0;
 
-  const triggerChaos = async (chaos) => {
+  const triggerChaos = (chaos) => {
+    if (pendingChaos[chaos.id] !== undefined) return;
+    if (activeInjections.some(i => i.id === chaos.id)) return;
+
+    setPendingChaos(prev => ({ ...prev, [chaos.id]: 5 }));
+    setMessage({ text: `[STAGING] ${chaos.label} armed. Revoke window active for 5s...`, ok: true });
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const left = 5 - elapsed;
+      if (left <= 0) {
+        clearInterval(interval);
+      } else {
+        setPendingChaos(prev => prev[chaos.id] ? { ...prev, [chaos.id]: left } : prev);
+      }
+    }, 1000);
+
+    const timeoutId = setTimeout(() => {
+      clearInterval(interval);
+      setPendingChaos(prev => {
+        const copy = { ...prev };
+        delete copy[chaos.id];
+        return copy;
+      });
+      executeChaos(chaos);
+    }, 5000);
+
+    stagingRefs.current[chaos.id] = { interval, timeoutId };
+  };
+
+  const revokeChaos = (e, chaosId) => {
+    e.stopPropagation();
+    if (stagingRefs.current[chaosId]) {
+      clearInterval(stagingRefs.current[chaosId].interval);
+      clearTimeout(stagingRefs.current[chaosId].timeoutId);
+      delete stagingRefs.current[chaosId];
+    }
+    setPendingChaos(prev => {
+      const copy = { ...prev };
+      delete copy[chaosId];
+      return copy;
+    });
+    setMessage({ text: `[REVOKED] ${chaosId.toUpperCase()} injection safely aborted by operator.`, ok: true });
+  };
+
+  const abortInjection = async (e, uid, label) => {
+    e.stopPropagation();
+    try {
+      if (timeoutsRef.current[uid]) {
+        clearTimeout(timeoutsRef.current[uid]);
+        delete timeoutsRef.current[uid];
+      }
+      setActiveInjections(prev => prev.filter(i => i.uid !== uid));
+      setMessage({ text: `[REVOKED] ${label.toUpperCase()} injection aborted by operator.`, ok: true });
+      await axios.post("http://localhost:8000/api/chaos/disable");
+    } catch (err) {
+      console.error("Error aborting injection", err);
+    }
+  };
+
+  const executeChaos = async (chaos) => {
     setLoading(chaos.id);
     setMessage(null);
     try {
@@ -102,7 +165,6 @@ export function ChaosControl() {
       setMessage({ text: `[OK] Payload delivered → ${chaos.namespace}/${chaos.pod}`, ok: true });
       
       const timeoutId = setTimeout(() => {
-        // Notify Live Stream that this chaos has auto-recovered
         window.dispatchEvent(new CustomEvent("chaosResolved", {
           detail: {
             id: uid,
@@ -129,7 +191,6 @@ export function ChaosControl() {
     try {
       await axios.post("http://localhost:8000/api/chaos/disable");
       
-      // Fire an aborted event and clear timeouts
       activeInjections.forEach((inj) => {
         if (timeoutsRef.current[inj.uid]) {
             clearTimeout(timeoutsRef.current[inj.uid]);
@@ -147,17 +208,27 @@ export function ChaosControl() {
         }));
       });
       
+      Object.keys(stagingRefs.current).forEach(key => {
+        clearInterval(stagingRefs.current[key].interval);
+        clearTimeout(stagingRefs.current[key].timeoutId);
+      });
+      stagingRefs.current = {};
+      setPendingChaos({});
+      
       setActiveInjections([]);
-      setMessage({ text: "[OK] Graceful termination signal sent to all agents.", ok: true });
+      setMessage({ text: "[OK] Graceful termination signal sent to all agents and pending stages.", ok: true });
     } catch (err) {
       setMessage({ text: `[FAIL] Abort failed: ${err.message}`, ok: false });
     }
   };
 
-  // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       Object.values(timeoutsRef.current).forEach(clearTimeout);
+      Object.values(stagingRefs.current).forEach(ref => {
+        clearInterval(ref.interval);
+        clearTimeout(ref.timeoutId);
+      });
     };
   }, []);
 
@@ -221,8 +292,47 @@ export function ChaosControl() {
           </div>
         </div>
 
+        {/* ── SRE Chaos Engineering Guide & Research Principles ───────────────────────── */}
+        <div className="mx-5 mt-4 p-4 rounded-xl border font-sans" style={{ background: "rgba(15,23,42,0.4)", borderColor: "#334155" }}>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={16} className="text-accent-cyan" />
+            <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider font-display">
+              Chaos Sandbox & Resilience Verification Guide
+            </h3>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed mb-3 font-sans">
+            This sandbox environment allows Site Reliability Engineers to inject controlled, destructive faults to empirically verify cluster self-healing mechanisms and autonomous AI agent response times under severe operational stress.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans">
+            <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 text-accent-red font-bold text-xs">
+                <ShieldAlert size={14} /> 1. Hypothesis Testing
+              </div>
+              <div className="text-[11px] text-slate-400 font-sans">
+                Inject compute spikes, memory leaks, or network throttling to validate auto-scaling thresholds and circuit breaker triggers.
+              </div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 text-accent-cyan font-bold text-xs">
+                <Info size={14} /> 2. AI Daemon Mitigation
+              </div>
+              <div className="text-[11px] text-slate-400 font-sans">
+                PodMaster's 6 AI Daemons detect cgroup exhaustion in &lt;10s and dispatch corrective kubectl remedies autonomously.
+              </div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 text-accent-emerald font-bold text-xs">
+                <CheckCircle2 size={14} /> 3. Strict Blast Radius
+              </div>
+              <div className="text-[11px] text-slate-400 font-sans">
+                Faults are strictly isolated to target pods. Auto-recovery triggers after 90s, restoring nominal cgroup state instantly.
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ── Scenario Grid ───────────────────────── */}
-        <div className="grid grid-cols-5 gap-3 px-5 pt-4 pb-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 px-5 pt-4 pb-3">
           {CHAOS_TYPES.map((chaos) => {
             const Icon = chaos.icon;
             const isLoading = loading === chaos.id;
@@ -254,17 +364,34 @@ export function ChaosControl() {
                   </div>
                   {isLoading ? (
                     <div className="w-3 h-3 border border-gray-500 border-t-white rounded-full animate-spin" />
+                  ) : pendingChaos[chaos.id] !== undefined ? (
+                    <button
+                      onClick={(e) => revokeChaos(e, chaos.id)}
+                      title="Revoke / Abort Injection"
+                      className="z-20 px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-[10px] font-mono font-bold text-white flex items-center gap-1.5 animate-bounce shadow-md"
+                    >
+                      <Trash2 size={12} /> REVOKE ({pendingChaos[chaos.id]}s)
+                    </button>
                   ) : isActive ? (
-                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: chaos.color, boxShadow: `0 0 6px ${chaos.color}` }} />
+                    <button
+                      onClick={(e) => {
+                        const activeInj = activeInjections.find(i => i.id === chaos.id);
+                        if (activeInj) abortInjection(e, activeInj.uid, activeInj.label);
+                      }}
+                      title="Undo Active Chaos"
+                      className="z-20 px-2 py-1 bg-red-500/20 hover:bg-red-500 border border-red-500/50 hover:border-red-500 rounded text-[10px] font-mono font-bold text-red-400 hover:text-white flex items-center gap-1 transition-all shadow-md"
+                    >
+                      <Trash2 size={12} /> UNDO
+                    </button>
                   ) : (
-                    <div className="text-[8px] font-mono px-1 py-0.5 rounded"
+                    <div className="text-[8px] font-mono px-1 py-0.5 rounded font-bold"
                       style={{ border: `1px solid ${chaos.border}`, color: chaos.color }}>
                       READY
                     </div>
                   )}
                 </div>
 
-                <div className="relative z-10">
+                <div className="relative z-10 mt-1">
                   <div className="text-[10px] font-mono font-bold uppercase tracking-wide text-gray-200">
                     {chaos.label}
                   </div>
@@ -322,7 +449,7 @@ export function ChaosControl() {
                     Active Subroutines ({activeInjections.length})
                   </div>
                   {activeInjections.map((inj) => (
-                    <ActiveInjectionRow key={inj.uid} injection={inj} />
+                    <ActiveInjectionRow key={inj.uid} injection={inj} onAbort={abortInjection} />
                   ))}
                 </motion.div>
               )}
@@ -334,7 +461,7 @@ export function ChaosControl() {
   );
 }
 
-function ActiveInjectionRow({ injection }) {
+function ActiveInjectionRow({ injection, onAbort }) {
   const [timeLeft, setTimeLeft] = useState(injection.duration);
 
   useEffect(() => {
@@ -353,25 +480,34 @@ function ActiveInjectionRow({ injection }) {
       initial={{ x: -12, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 12, opacity: 0 }}
-      className="relative rounded overflow-hidden flex items-center gap-2 px-2 py-1.5"
+      className="relative rounded overflow-hidden flex items-center gap-2 px-2.5 py-2 text-xs font-mono"
       style={{ background: "#0d1117", border: "1px solid #1e293b" }}
     >
       {/* Progress fill */}
       <div
-        className="absolute left-0 top-0 bottom-0 transition-all duration-1000"
+        className="absolute left-0 top-0 bottom-0 transition-all duration-1000 pointer-events-none"
         style={{ width: `${progress}%`, background: `${injection.color}18` }}
       />
-      <Icon size={12} style={{ color: injection.color }} className="relative z-10 shrink-0" />
-      <div className="flex-1 relative z-10 min-w-0">
+      <Icon size={14} style={{ color: injection.color }} className="relative z-10 shrink-0" />
+      <div className="flex-1 relative z-10 min-w-0 flex items-center gap-1.5">
         <span className="font-bold" style={{ color: injection.color }}>{injection.label}</span>
-        <span className="mx-1" style={{ color: "#334155" }}>›</span>
+        <span style={{ color: "#334155" }}>›</span>
         <span style={{ color: "#64748b" }}>{injection.namespace}/</span>
         <span style={{ color: "#93c5fd" }}>{injection.pod}</span>
       </div>
-      <div className="relative z-10 flex items-center gap-1 px-1.5 py-0.5 rounded shrink-0"
-        style={{ background: "#0a0f18", border: "1px solid #1e293b" }}>
-        <Clock size={9} style={{ color: injection.color }} />
-        <span className="text-[9px] font-bold" style={{ color: injection.color }}>T-{timeLeft}s</span>
+      <div className="relative z-10 flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded border"
+          style={{ background: "#0a0f18", borderColor: "#1e293b" }}>
+          <Clock size={10} style={{ color: injection.color }} />
+          <span className="text-[10px] font-bold font-mono" style={{ color: injection.color }}>T-{timeLeft}s</span>
+        </div>
+        <button
+          onClick={(e) => onAbort(e, injection.uid, injection.label)}
+          title="Revoke / Undo Active Injection"
+          className="p-1 rounded bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 hover:border-red-500 transition-all shadow-md"
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </motion.div>
   );
