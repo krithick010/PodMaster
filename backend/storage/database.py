@@ -193,20 +193,18 @@ class KubeVisionDB:
                     slo
                 )
 
-        # Check Alert Rules
-        cursor = await db.execute("SELECT COUNT(*) FROM alert_rules")
-        row = await cursor.fetchone()
-        if row and row[0] == 0:
-            default_alerts = [
-                ("alert-1", "High CPU Usage (>80%)", "all", json.dumps({"metric": "cpu", "operator": ">", "value": 80, "duration": "5m"}), "active", None),
-                ("alert-2", "Memory Near Limit (>90%)", "all", json.dumps({"metric": "memory", "operator": ">", "value": 90, "duration": "5m"}), "active", None),
-                ("alert-3", "High Error Rate (>5%)", "all", json.dumps({"metric": "error_rate", "operator": ">", "value": 5, "duration": "1m"}), "active", None),
-            ]
-            for alert in default_alerts:
-                await db.execute(
-                    "INSERT INTO alert_rules (id, name, service, condition_json, status, last_triggered_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    alert
-                )
+        # Remove legacy demo alert rules so only user-created alerts remain.
+        await db.execute(
+            "DELETE FROM alert_rules WHERE id IN (?, ?, ?) OR name IN (?, ?, ?)",
+            (
+                "alert-1",
+                "alert-2",
+                "alert-3",
+                "High CPU Usage (>80%)",
+                "Memory Near Limit (>90%)",
+                "High Error Rate (>5%)",
+            ),
+        )
 
         # Check Config Events
         cursor = await db.execute("SELECT COUNT(*) FROM config_events")

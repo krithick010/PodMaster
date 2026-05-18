@@ -78,14 +78,80 @@ const CHAOS_TYPES = [
   },
 ];
 
+const CHAOS_STORAGE_KEY = "podmaster.chaos.activeInjections";
+
+const loadPersistedInjections = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(CHAOS_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const now = Date.now();
+    return parsed.filter((injection) => {
+      const remaining = injection.duration * 1000 - (now - injection.startTime);
+      return Number.isFinite(remaining) && remaining > 0;
+    });
+  } catch (error) {
+    return [];
+  }
+};
+
+const savePersistedInjections = (injections) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(CHAOS_STORAGE_KEY, JSON.stringify(injections));
+  } catch (error) {
+    // Ignore storage quota or privacy-mode failures.
+  }
+};
+
 export function ChaosControl() {
   const [loading, setLoading] = useState(null);
-  const [activeInjections, setActiveInjections] = useState([]);
+  const [activeInjections, setActiveInjections] = useState(() => loadPersistedInjections());
   const [pendingChaos, setPendingChaos] = useState({}); // { [chaos.id]: secondsLeft }
   const [message, setMessage] = useState(null); // { text, ok }
   const timeoutsRef = useRef({});
   const stagingRefs = useRef({});
   const isAnyActive = activeInjections.length > 0;
+
+  useEffect(() => {
+    savePersistedInjections(activeInjections);
+  }, [activeInjections]);
+
+  useEffect(() => {
+    const restored = loadPersistedInjections();
+    if (restored.length === 0) return;
+
+    setActiveInjections(restored);
+
+    restored.forEach((injection) => {
+      if (timeoutsRef.current[injection.uid]) return;
+
+      const elapsed = Date.now() - injection.startTime;
+      const remaining = Math.max(0, (injection.duration * 1000) - elapsed);
+      if (remaining <= 0) return;
+
+      timeoutsRef.current[injection.uid] = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("chaosResolved", {
+          detail: {
+            id: injection.uid,
+            label: injection.label,
+            pod: injection.pod,
+            namespace: injection.namespace,
+            color: injection.color,
+            icon: injection.id,
+          }
+        }));
+        setActiveInjections((prev) => prev.filter((item) => item.uid !== injection.uid));
+        delete timeoutsRef.current[injection.uid];
+      }, remaining);
+    });
+  }, []);
 
   const triggerChaos = (chaos) => {
     if (pendingChaos[chaos.id] !== undefined) return;
@@ -216,6 +282,7 @@ export function ChaosControl() {
       setPendingChaos({});
       
       setActiveInjections([]);
+      savePersistedInjections([]);
       setMessage({ text: "[OK] Graceful termination signal sent to all agents and pending stages.", ok: true });
     } catch (err) {
       setMessage({ text: `[FAIL] Abort failed: ${err.message}`, ok: false });
@@ -473,7 +540,8 @@ function ActiveInjectionRow({ injection, onAbort }) {
   }, [injection]);
 
   const progress = (timeLeft / injection.duration) * 100;
-  const Icon = injection.icon;
+  const staticConfig = CHAOS_TYPES.find(c => c.id === injection.id);
+  const Icon = staticConfig ? staticConfig.icon : injection.icon;
 
   return (
     <motion.div

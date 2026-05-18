@@ -242,7 +242,7 @@ export function AnomalyTimeline({ anomalies = [] }) {
                           </span>
                           <span className="text-xs font-bold text-primary font-sans">{evt.service}</span>
                         </div>
-                        <span className="text-xs font-mono text-muted">{new Date(evt.timestamp).toLocaleTimeString()}</span>
+                        <span className="text-xs font-mono text-muted">{new Date(evt.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                       </div>
                       <p className="text-xs font-sans text-secondary leading-relaxed">{evt.description}</p>
                     </div>

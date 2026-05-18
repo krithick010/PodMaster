@@ -11,7 +11,7 @@ export function FloatingAIAssistant() {
       id: 1,
       sender: "ai",
       text: "Hello! I am your autonomous SRE Assistant. Ask me anything about cluster health, pod restarts, or eBPF kernel metrics.",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }
   ]);
   const [input, setInput] = useState("");
@@ -36,7 +36,7 @@ export function FloatingAIAssistant() {
       id: Date.now(),
       sender: "user",
       text: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
     };
     
     setMessages(prev => [...prev, userMsg]);
@@ -50,7 +50,7 @@ export function FloatingAIAssistant() {
         sender: "ai",
         text: res.data.answer,
         meta: `Generated in ${res.data.generation_time_ms}ms`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
       }]);
     } catch (err) {
       setMessages(prev => [...prev, {
@@ -58,7 +58,7 @@ export function FloatingAIAssistant() {
         sender: "ai",
         text: "I observed high cluster telemetry latency. Based on historical data, nominal cgroup state is stable but the live Prometheus query timed out. All 9 university pods are reporting online.",
         meta: "Fallback Heuristics",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
       }]);
     } finally {
       setIsLoading(false);

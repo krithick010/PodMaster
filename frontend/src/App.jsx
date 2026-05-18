@@ -5,6 +5,7 @@ import { NamespaceProvider } from "./context/NamespaceContext";
 import { Dashboard } from "./pages/Dashboard";
 import { About } from "./pages/About";
 import { FloatingAIAssistant } from "./components/FloatingAIAssistant";
+import { ChaosStatusStrip } from "./components/ChaosStatusStrip";
 import "./index.css";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
       <NamespaceProvider>
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <div className="min-h-screen bg-base font-sans antialiased text-primary selection:bg-accent-violet/30 selection:text-white">
+            <ChaosStatusStrip />
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/about" element={<About />} />

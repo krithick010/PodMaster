@@ -18,6 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect, Body
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -37,6 +38,7 @@ from storage.models import (
     StorageMetricsRecord,
     AlertRuleRecord,
     ConfigEventRecord,
+    RCARecord,
 )
 
 load_dotenv()
@@ -66,9 +68,10 @@ class ConnectionManager:
         self.active_connections.discard(websocket)
 
     async def broadcast(self, message: Dict[str, Any]):
+        encoded_message = jsonable_encoder(message)
         for connection in self.active_connections:
             try:
-                await connection.send_json(message)
+                await connection.send_json(encoded_message)
             except Exception:
                 pass
 
@@ -84,6 +87,7 @@ class CacheManager:
         self.golden_signals: Dict[str, Any] = {
             "latency_ms": 42.5, "traffic_rps": 125.4, "error_rate": 0.12, "saturation": 68.5, "source": "simulated"
         }
+        self.slos: List[Dict[str, Any]] = []
         self.cluster_tree: List[Dict[str, Any]] = []
         self.service_topology: Dict[str, Any] = {"nodes": [], "edges": []}
         self.hotspots: Dict[str, Any] = {"cpu": [], "memory": [], "restarts": [], "error_rate": []}
@@ -92,6 +96,202 @@ class CacheManager:
 
 
 cache_manager = CacheManager()
+
+
+SERVICE_NAMESPACE_HINTS: Dict[str, str] = {
+    "student-portal": "university-frontend",
+    "attendance-service": "university-backend",
+    "result-service": "university-backend",
+    "postgres-db": "university-data",
+}
+
+
+def _service_matches_pod(service: str, pod_name: str) -> bool:
+    if service == "postgres-db":
+        return "postgres" in pod_name
+    return pod_name.startswith(service)
+
+
+def _build_namespace_summaries(
+    pod_metrics: Dict[str, Dict[str, Any]],
+    pods_by_namespace: Dict[str, List[Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    namespace_names = sorted(set(pod_metrics.keys()) | set(pods_by_namespace.keys()))
+    summaries: List[Dict[str, Any]] = []
+
+    for namespace in namespace_names:
+        metric_pods = pod_metrics.get(namespace, {})
+        k8s_pods = pods_by_namespace.get(namespace, [])
+        pod_count = max(len(metric_pods), len(k8s_pods))
+        restarts = sum(int(p.get("restart_count", 0) or 0) for p in k8s_pods)
+        if metric_pods:
+            restarts = sum(int(m.get("restart_count", 0) or 0) for m in metric_pods.values())
+
+        cpu_usage = round(sum(float(m.get("cpu_usage", 0.0) or 0.0) for m in metric_pods.values()), 2)
+        memory_gb = round(sum(float(m.get("memory_usage", 0.0) or 0.0) for m in metric_pods.values()) / 1e9, 2)
+
+        ready_pods = sum(1 for pod in k8s_pods if pod.get("ready") or pod.get("status") == "Running")
+        unhealthy_pods = max(0, pod_count - ready_pods)
+        pressure_values: List[float] = []
+        for metric in metric_pods.values():
+            cpu_limit = float(metric.get("cpu_limit", 0.0) or 0.0)
+            memory_limit = float(metric.get("memory_limit", 0.0) or 0.0)
+            cpu_ratio = (float(metric.get("cpu_usage", 0.0) or 0.0) / cpu_limit) if cpu_limit > 0 else 0.0
+            memory_ratio = (float(metric.get("memory_usage", 0.0) or 0.0) / memory_limit) if memory_limit > 0 else 0.0
+            pressure_values.append(max(cpu_ratio, memory_ratio))
+
+        pressure = max(pressure_values) if pressure_values else 0.0
+        health_score = max(
+            0.0,
+            100.0 - (unhealthy_pods * 8.0) - (restarts * 1.5) - min(25.0, pressure * 20.0),
+        )
+        cost_score = min(
+            100.0,
+            (pod_count * 10.0) + (restarts * 2.5) + (cpu_usage * 12.0) + (memory_gb * 6.0),
+        )
+
+        summaries.append(
+            {
+                "namespace": namespace,
+                "health_score": round(health_score, 1),
+                "cost_score": round(cost_score, 1),
+                "pods": pod_count,
+                "restarts": restarts,
+                "cpu_usage": round(cpu_usage, 2),
+                "memory_gb": round(memory_gb, 2),
+                "source": "prometheus" if metric_pods else "kubernetes" if k8s_pods else "unavailable",
+            }
+        )
+
+    return summaries
+
+
+def _build_slo_summary(
+    slo_rows: List[Any],
+    pod_metrics: Dict[str, Dict[str, Any]],
+    pods_by_namespace: Dict[str, List[Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    k8s_lookup: Dict[str, Dict[str, Dict[str, Any]]] = {
+        namespace: {pod["name"]: pod for pod in pods}
+        for namespace, pods in pods_by_namespace.items()
+    }
+    results: List[Dict[str, Any]] = []
+
+    for slo in slo_rows:
+        service = slo.service
+        namespace_hint = SERVICE_NAMESPACE_HINTS.get(service)
+        service_pods: List[Dict[str, Any]] = []
+
+        candidate_namespaces = [namespace_hint] if namespace_hint else sorted(set(pod_metrics.keys()) | set(pods_by_namespace.keys()))
+        for namespace in candidate_namespaces:
+            if not namespace:
+                continue
+            metric_pods = pod_metrics.get(namespace, {})
+            k8s_pods = k8s_lookup.get(namespace, {})
+
+            for pod_name, metric in metric_pods.items():
+                if _service_matches_pod(service, pod_name):
+                    service_pods.append(
+                        {
+                            "namespace": namespace,
+                            "pod_name": pod_name,
+                            "ready": True,
+                            "restart_count": int(metric.get("restart_count", 0) or 0),
+                            "cpu_usage": float(metric.get("cpu_usage", 0.0) or 0.0),
+                            "cpu_limit": float(metric.get("cpu_limit", 0.0) or 0.0),
+                            "memory_usage": float(metric.get("memory_usage", 0.0) or 0.0),
+                            "memory_limit": float(metric.get("memory_limit", 0.0) or 0.0),
+                        }
+                    )
+
+            for pod_name, pod in k8s_pods.items():
+                if _service_matches_pod(service, pod_name) and all(entry["pod_name"] != pod_name for entry in service_pods):
+                    service_pods.append(
+                        {
+                            "namespace": namespace,
+                            "pod_name": pod_name,
+                            "ready": bool(pod.get("ready") or pod.get("status") == "Running"),
+                            "restart_count": int(pod.get("restart_count", 0) or 0),
+                            "cpu_usage": 0.0,
+                            "cpu_limit": 0.0,
+                            "memory_usage": 0.0,
+                            "memory_limit": 0.0,
+                        }
+                    )
+
+        if service_pods:
+            ready_pods = sum(1 for pod in service_pods if pod.get("ready"))
+            restart_count = sum(int(pod.get("restart_count", 0) or 0) for pod in service_pods)
+            pressure_values: List[float] = []
+            for pod in service_pods:
+                cpu_limit = float(pod.get("cpu_limit", 0.0) or 0.0)
+                memory_limit = float(pod.get("memory_limit", 0.0) or 0.0)
+                cpu_ratio = (float(pod.get("cpu_usage", 0.0) or 0.0) / cpu_limit) if cpu_limit > 0 else 0.0
+                memory_ratio = (float(pod.get("memory_usage", 0.0) or 0.0) / memory_limit) if memory_limit > 0 else 0.0
+                pressure_values.append(max(cpu_ratio, memory_ratio))
+
+            pressure = max(pressure_values) if pressure_values else 0.0
+            current_availability = max(
+                0.0,
+                min(100.0, (ready_pods / len(service_pods)) * 100.0 - (restart_count * 2.0) - min(20.0, pressure * 18.0)),
+            )
+            objective = float(slo.objective_percentage)
+            if current_availability >= objective:
+                budget_remaining = 100.0
+            else:
+                budget_remaining = max(0.0, round(100.0 - ((objective - current_availability) * 20.0), 1))
+            if current_availability < objective - 1.0 or budget_remaining <= 0.0:
+                status = "breached"
+            elif current_availability < objective or budget_remaining < 30.0:
+                status = "at_risk"
+            else:
+                status = "on_track"
+            source = "prometheus" if pod_metrics else "kubernetes"
+        else:
+            current_availability = float(slo.current_availability)
+            budget_remaining = float(slo.budget_remaining)
+            status = slo.status
+            source = "database"
+
+        results.append(
+            {
+                "id": slo.id,
+                "service": slo.service,
+                "objective_percentage": float(slo.objective_percentage),
+                "current_availability": round(current_availability, 2),
+                "budget_remaining": round(budget_remaining, 1),
+                "status": status,
+                "source": source,
+            }
+        )
+
+    return results
+
+
+async def _get_live_cluster_snapshot() -> Dict[str, Any]:
+    snapshot: Dict[str, Any] = {
+        "pod_metrics": {},
+        "pods_by_namespace": {},
+        "source": "unavailable",
+    }
+
+    if k8s_client:
+        try:
+            snapshot["pods_by_namespace"] = await k8s_client.get_pods_all_namespaces()
+        except Exception:
+            snapshot["pods_by_namespace"] = {}
+
+    if prometheus_client and prometheus_client.is_healthy():
+        try:
+            snapshot["pod_metrics"] = await prometheus_client.get_pod_metrics_all_namespaces()
+            snapshot["source"] = "prometheus"
+        except Exception:
+            snapshot["pod_metrics"] = {}
+            snapshot["source"] = "kubernetes" if snapshot["pods_by_namespace"] else "unavailable"
+    elif snapshot["pods_by_namespace"]:
+        snapshot["source"] = "kubernetes"
+
+    return snapshot
 
 
 @asynccontextmanager
@@ -163,7 +363,8 @@ async def collect_and_analyze():
 
     try:
         # Collect base metrics
-        pod_metrics = await prometheus_client.get_pod_metrics_all_namespaces()
+        cluster_snapshot = await _get_live_cluster_snapshot()
+        pod_metrics = cluster_snapshot["pod_metrics"]
         pvc_metrics = await prometheus_client.get_pvc_metrics()
 
         # Update Cache Manager (Feature 12)
@@ -171,7 +372,10 @@ async def collect_and_analyze():
         cache_manager.cluster_tree = await prometheus_client.get_cluster_tree()
         cache_manager.service_topology = await prometheus_client.get_service_topology()
         cache_manager.hotspots = await prometheus_client.get_top_hotspots()
-        cache_manager.namespace_summaries = await prometheus_client.get_namespace_summaries()
+        cache_manager.namespace_summaries = _build_namespace_summaries(pod_metrics, cluster_snapshot["pods_by_namespace"])
+        if db:
+            slo_rows = await db.get_slos()
+            cache_manager.slos = _build_slo_summary(slo_rows, pod_metrics, cluster_snapshot["pods_by_namespace"])
         cache_manager.last_updated = datetime.utcnow()
 
         # Collect K8s info
@@ -211,10 +415,12 @@ async def collect_and_analyze():
                     # Evaluate against top hotspots
                     if metric_type == "cpu" and cache_manager.hotspots.get("cpu"):
                         top_val = cache_manager.hotspots["cpu"][0]["metric_raw"] * 100
+                        print(f"DEBUG: EVALUATING ALERT {alert.id} - top_val: {top_val}, thresh: {val_thresh}")
                         if top_val > val_thresh:
+                            print(f"DEBUG: TRIGGERING ALERT {alert.id}")
                             await db.trigger_alert_rule(alert.id)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"DEBUG: EXCEPTION IN ALERTS: {e}")
 
         # Chaos anomaly injection
         if chaos_engine:
@@ -267,6 +473,7 @@ async def collect_and_analyze():
         last_metrics = {
             "timestamp": datetime.utcnow().isoformat(),
             "metrics": pod_metrics,
+            "pods_by_namespace": cluster_snapshot["pods_by_namespace"],
             "pvc_metrics": pvc_metrics,
             "anomalies": [a.to_dict() for a in all_findings],
             "agent_status": orchestrator.get_agent_statuses(),
@@ -384,8 +591,14 @@ async def get_slo_status():
     """Feature 5: SLO & Error Budget Status."""
     if not db:
         return {"slos": []}
+
+    live_snapshot = await _get_live_cluster_snapshot()
     slos = await db.get_slos()
-    return {"slos": [s.to_dict() for s in slos]}
+    return {
+        "slos": _build_slo_summary(slos, live_snapshot["pod_metrics"], live_snapshot["pods_by_namespace"]),
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": live_snapshot["source"],
+    }
 
 
 @app.get("/api/alerts/active")
@@ -452,7 +665,13 @@ async def ai_query_post(
 @app.get("/api/namespaces/health")
 async def get_namespaces_health():
     """Feature 11: Namespace Health & Cost Summary."""
-    return {"namespaces": cache_manager.namespace_summaries, "timestamp": cache_manager.last_updated.isoformat() if cache_manager.last_updated else datetime.utcnow().isoformat()}
+    live_snapshot = await _get_live_cluster_snapshot()
+    namespaces = _build_namespace_summaries(live_snapshot["pod_metrics"], live_snapshot["pods_by_namespace"])
+    return {
+        "namespaces": namespaces,
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": live_snapshot["source"],
+    }
 
 
 @app.get("/api/events/config")
@@ -752,7 +971,7 @@ async def get_activity_feed():
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
-        await websocket.send_json({"type": "snapshot", "data": last_metrics})
+        await websocket.send_json(jsonable_encoder({"type": "snapshot", "data": last_metrics}))
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:

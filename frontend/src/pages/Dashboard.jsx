@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayoutDashboard, Globe, Sparkles, Bell, Flame } from "lucide-react";
 import { Header } from "../components/Header";
+import { AlertNotificationStrip } from "../components/AlertNotificationStrip";
 import { Sidebar } from "../components/Sidebar";
 import { GoldenSignalsBar } from "../components/GoldenSignalsBar";
 import { LiveMetrics } from "../components/LiveMetrics";
@@ -68,6 +69,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-base text-primary overflow-hidden font-sans select-none">
+      <AlertNotificationStrip />
       <Header
         podCount={podCount}
         criticalCount={criticalCount}

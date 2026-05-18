@@ -5,12 +5,14 @@ import { motion } from "framer-motion";
 
 export function SLOStatusBar() {
   const [slos, setSlos] = useState([]);
+  const [source, setSource] = useState("unavailable");
   const [loading, setLoading] = useState(true);
 
   const fetchSlos = async () => {
     try {
       const res = await axios.get("http://localhost:8000/api/slo/status");
       setSlos(res.data.slos || []);
+      setSource(res.data.source || "unavailable");
     } catch (e) {
       console.error("Error fetching SLOs", e);
     } finally {
@@ -39,6 +41,8 @@ export function SLOStatusBar() {
     return <div className="h-28 bg-surface border border-subtle rounded-xl animate-pulse shadow-sm"></div>;
   }
 
+  const isLiveSource = source === "prometheus" || source === "kubernetes";
+
   return (
     <div className="bg-surface border border-subtle rounded-xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between text-primary font-sans">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-subtle">
@@ -46,10 +50,21 @@ export function SLOStatusBar() {
           <ShieldCheck size={18} className="text-accent-emerald" />
           Service Level Objectives (SLOs) & Error Budgets
         </h3>
-        <button onClick={fetchSlos} className="p-1.5 text-muted hover:text-accent-cyan transition-colors">
-          <RefreshCw size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${isLiveSource ? "bg-accent-emerald/10 text-accent-emerald border-accent-emerald/20" : "bg-accent-amber/10 text-accent-amber border-accent-amber/20"}`}>
+            {isLiveSource ? `${source} live` : "No live data"}
+          </span>
+          <button onClick={fetchSlos} className="p-1.5 text-muted hover:text-accent-cyan transition-colors">
+            <RefreshCw size={14} />
+          </button>
+        </div>
       </div>
+
+      {slos.length === 0 && (
+        <div className="min-h-[160px] flex items-center justify-center rounded-xl border border-dashed border-subtle bg-elevated/30 text-muted text-sm font-mono uppercase tracking-wider">
+          Waiting for live SLO records from the cluster
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {slos.map((slo) => {
@@ -63,7 +78,14 @@ export function SLOStatusBar() {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold font-mono text-primary truncate">{slo.service}</span>
-                {getStatusBadge(slo.status)}
+                <div className="flex items-center gap-2">
+                  {slo.source && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border bg-elevated text-muted border-subtle">
+                      {slo.source}
+                    </span>
+                  )}
+                  {getStatusBadge(slo.status)}
+                </div>
               </div>
 
               <div className="flex items-baseline justify-between my-3 font-mono">

@@ -47,7 +47,7 @@ export function LiveMetrics({ anomalies, selectedPod = "all" }) {
 
         const avgCpu = podCount > 0 ? totalCpu / podCount : 0;
         const avgMem = podCount > 0 ? totalMemory / podCount : 0;
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const timeStr = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
         setHistory(prev => {
           const newHistory = [...prev, { time: timeStr, cpu: Number(avgCpu.toFixed(1)), memory: Number(avgMem.toFixed(1)) }];

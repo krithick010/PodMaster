@@ -127,7 +127,7 @@ export function AlertRulesPanel() {
                   </span>
                   {alert.last_triggered_at && (
                     <div className="text-[10px] font-mono text-muted mt-1.5 font-medium">
-                      Last: {new Date(alert.last_triggered_at).toLocaleTimeString()}
+                      Last: {new Date(alert.last_triggered_at).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </div>
                   )}
                 </div>
